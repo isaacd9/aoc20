@@ -11,7 +11,7 @@ const REQUIRED: [&'static str; 7] = ["byr", "iyr", "eyr", "hgt", "hcl", "ecl", "
 const EYE_COLORS: [&'static str; 7] = ["amb", "blu", "brn", "gry", "grn", "hzl", "oth"];
 
 impl Passport {
-    fn valid(&self, validators: &HashMap<String, Box<Fn(String) -> bool>>) -> bool {
+    fn valid(&self, validators: &HashMap<String, Box<dyn Fn(String) -> bool>>) -> bool {
         for r in &REQUIRED {
             let data = self.fields.get(&r.to_string());
 
