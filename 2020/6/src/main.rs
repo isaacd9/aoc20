@@ -1,46 +1,70 @@
 use std::collections::{HashMap, HashSet};
 use std::io::{self, BufRead, Error, Lines, StdinLock};
 
+#[derive(Default, Debug)]
 struct Group {
     questions_answered: Vec<HashSet<char>>,
 }
 
-fn count_questions(lines: Lines<StdinLock>) -> Result<Vec<u32>, io::Error> {
+impl Group {
+    fn count_by_question(&self) -> HashMap<char, u32> {
+        let mut hm = HashMap::new();
+        for person in &self.questions_answered {
+            for q in person {
+                *hm.entry(*q).or_insert(0) += 1;
+            }
+        }
+        hm
+    }
+
+    fn anyone_answered_yes(&self) -> u32 {
+        self.count_by_question().len() as u32
+    }
+
+    fn everyone_answered_yes(&self) -> u32 {
+        self.count_by_question()
+            .iter()
+            .filter(|(_, c)| **c == self.questions_answered.len() as u32)
+            .count() as u32
+    }
+}
+
+fn count_questions(lines: Lines<StdinLock>) -> Result<Vec<Group>, io::Error> {
     let mut count_by_group: Vec<u32> = vec![];
     let mut unwrapped = lines.map(|li| li.unwrap());
 
-    let mut cur_group: HashMap<char, u32> = HashMap::new();
-    let mut group_size = 0;
+    let mut cur_group: Group = Default::default();
+    let mut groups: Vec<Group> = vec![];
 
     for li in unwrapped {
         if li == "" {
-            let qs = cur_group.iter().filter(|q| *q.1 == group_size).count();
-            count_by_group.push(qs as u32);
-            cur_group = HashMap::new();
-            group_size = 0;
+            groups.push(cur_group);
+            cur_group = Default::default();
         } else {
-            group_size += 1;
-        }
-
-        for c in li.chars() {
-            *cur_group.entry(c).or_insert(0) += 1;
+            let mut hs: HashSet<char> = HashSet::new();
+            for c in li.chars() {
+                hs.insert(c);
+            }
+            cur_group.questions_answered.push(hs);
         }
     }
-    let qs = cur_group.iter().filter(|q| *q.1 == group_size).count();
-    count_by_group.push(qs as u32);
 
-    //println!("{:?}", count_by_group);
-    Ok(count_by_group)
+    groups.push(cur_group);
+    Ok(groups)
 }
 
 fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines();
 
-    let counts = count_questions(lines).unwrap();
-    let mut total = 0;
-    for count in counts {
-        total += count;
+    let groups = count_questions(lines).unwrap();
+    let mut part_one = 0;
+    let mut part_two = 0;
+
+    for group in groups {
+        part_one += group.anyone_answered_yes();
+        part_two += group.everyone_answered_yes();
     }
-    println!("{:?}", total)
+    println!("{}", part_one);
+    println!("{}", part_two);
 }
