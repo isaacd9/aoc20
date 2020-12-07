@@ -30,8 +30,7 @@ impl Group {
 }
 
 fn count_questions(lines: Lines<StdinLock>) -> Result<Vec<Group>, io::Error> {
-    let mut count_by_group: Vec<u32> = vec![];
-    let mut unwrapped = lines.map(|li| li.unwrap());
+    let unwrapped = lines.map(|li| li.unwrap());
 
     let mut cur_group: Group = Default::default();
     let mut groups: Vec<Group> = vec![];
