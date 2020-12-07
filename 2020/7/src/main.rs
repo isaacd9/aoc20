@@ -53,15 +53,15 @@ impl Bags {
         bags
     }
 
-    fn resolve(&self, bag_name: String) -> Bag {
-        let rules = self.bag_types.get(&bag_name).unwrap();
+    fn resolve(&self, bag_name: &String) -> Bag {
+        let rules = self.bag_types.get(bag_name).unwrap();
         let contents = rules
             .iter()
-            .map(|rule| (rule.0, self.resolve(rule.1.clone())))
+            .map(|rule| (rule.0, self.resolve(&rule.1)))
             .collect();
 
         Bag {
-            name: bag_name,
+            name: bag_name.clone(),
             contents: contents,
         }
     }
@@ -117,9 +117,6 @@ fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines();
     let bag_rules = parse_bags(lines).unwrap();
-    for rule in &bag_rules {
-        println!("{:?}", rule);
-    }
     let bags = Bags::new(&mut bag_rules.iter());
     let mut count = 0;
     for rule in bag_rules {
@@ -127,7 +124,7 @@ fn main() {
             continue;
         }
 
-        let resolved = bags.resolve(rule.bag.clone());
+        let resolved = bags.resolve(&rule.bag);
         if resolved.find(&looking_for) {
             count += 1;
         }
@@ -135,6 +132,6 @@ fn main() {
     println!("{}", count);
     println!(
         "{}",
-        bags.resolve("shiny gold".to_string()).count_bags_inside()
+        bags.resolve(&"shiny gold".to_string()).count_bags_inside()
     );
 }
