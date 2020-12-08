@@ -66,6 +66,7 @@ fn main() {
     let mut prog = parse_program(lines).unwrap();
 
     let result = execute_program(&prog);
+    println!("{:?}", result);
 
     for idx in 0..prog.len() {
         let inst = &prog[idx];
@@ -82,6 +83,4 @@ fn main() {
             println!("{:?}", result);
         }
     }
-
-    //println!("{:?}", result);
 }
