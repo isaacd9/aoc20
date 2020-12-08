@@ -67,8 +67,7 @@ fn main() {
 
     let result = execute_program(&prog);
 
-    let mut idx = 0;
-    while idx < prog.len() {
+    for idx in 0..prog.len() {
         let inst = &prog[idx];
         let tmp = inst.clone();
         let new_inst = match inst {
@@ -82,7 +81,6 @@ fn main() {
         if result.is_ok() {
             println!("{:?}", result);
         }
-        idx += 1;
     }
 
     //println!("{:?}", result);
