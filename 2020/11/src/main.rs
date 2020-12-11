@@ -61,15 +61,56 @@ impl Grid {
         num_adjacent
     }
 
+    fn count_first_occupied(&self, point: (usize, usize)) -> u32 {
+        let mut num_adjacent = 0;
+
+        for r in -1..=1 {
+            for c in -1..=1 {
+                if r == 0 && c == 0 {
+                    continue;
+                }
+
+                let mut magnitude = 1;
+
+                loop {
+                    let x = &self
+                        .0
+                        .get((point.0 as i32 + (r * magnitude)) as usize)
+                        .and_then(|v| v.get((point.1 as i32 + (c * magnitude)) as usize));
+
+                    //println!("r: {}, c: {}, x: {:?}", r + magnitude, c + magnitude, x);
+                    match x {
+                        Some(state) => match state {
+                            State::Empty => break,
+                            State::Occupied => {
+                                num_adjacent += 1;
+                                break;
+                            }
+                            State::Floor => {
+                                magnitude += 1;
+                                continue;
+                            }
+                        },
+                        None => {
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        num_adjacent
+    }
+
     fn iterate(&self) -> Grid {
         let mut g = self.clone();
         for (r, row) in self.0.iter().enumerate() {
             for (c, col) in row.iter().enumerate() {
-                let adjacent_occupied = self.count_adjacent((r, c), State::Occupied);
+                let adjacent_occupied = self.count_first_occupied((r, c));
+                //println!("r: {}, c: {}, occupied: {:?}", r, c, adjacent_occupied);
                 let new = match (col, adjacent_occupied) {
                     (State::Floor, _) => State::Floor,
                     (_, 0) => State::Occupied,
-                    (_, x) if x >= 4 => State::Empty,
+                    (_, x) if x >= 5 => State::Empty,
                     (_, _) => col.clone(),
                 };
                 g.0[r][c] = new
@@ -116,6 +157,10 @@ fn main() {
 
     let mut grid = read_input(lines).unwrap();
     let mut next = grid.iterate();
+
+    //println!("{}", grid.iterate());
+    //println!("---");
+    //println!("{}", grid.iterate().iterate());
 
     while grid != next {
         grid = next;
