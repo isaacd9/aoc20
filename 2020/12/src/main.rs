@@ -59,8 +59,8 @@ fn read_input(lines: Lines<StdinLock>) -> Result<Vec<Move>, io::Error> {
 
 #[derive(Debug)]
 struct Ship {
-    direction: Facing,
     coords: (i32, i32),
+    waypoint: (i32, i32),
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
@@ -72,52 +72,51 @@ enum Facing {
 }
 
 impl Ship {
-    fn next_pos(&mut self, c: Cardinal) -> (i32, i32) {
+    fn next_waypoint_pos(&mut self, c: &Cardinal) -> (i32, i32) {
         use crate::Cardinal::*;
         match c {
-            North(num) => (self.coords.0, self.coords.1 + num),
-            South(num) => (self.coords.0, self.coords.1 - num),
-            East(num) => (self.coords.0 + num, self.coords.1),
-            West(num) => (self.coords.0 - num, self.coords.1),
+            North(num) => (self.waypoint.0, self.waypoint.1 + num),
+            South(num) => (self.waypoint.0, self.waypoint.1 - num),
+            East(num) => (self.waypoint.0 + num, self.waypoint.1),
+            West(num) => (self.waypoint.0 - num, self.waypoint.1),
         }
     }
 
-    fn do_move(&mut self, m: Move) {
+    fn do_move(&mut self, m: &Move) {
         use crate::Move::*;
 
         use crate::Cardinal::*;
         use crate::Direction::*;
         use crate::Turn::*;
 
-        let facings = [Facing::North, Facing::East, Facing::South, Facing::West];
-
         match m {
             Cardinal(c) => {
-                self.coords = self.next_pos(c);
+                self.waypoint = self.next_waypoint_pos(&c);
             }
             Turn(c) => {
-                self.direction = match c {
-                    Right(deg) => {
-                        facings[(((self.direction as i32) + deg / 90) % 4) as usize].clone()
-                    }
-                    Left(deg) => {
-                        let mut index = ((self.direction as i32) - deg / 90) % 4;
-                        if index < 0 {
-                            index = 4 + index;
-                        }
-                        facings[index as usize].clone()
-                    }
-                }
+                let rotations = match c {
+                    Left(deg) => -deg / 90,
+                    Right(deg) => deg / 90,
+                };
+
+                self.waypoint = match rotations % 4 {
+                    -3 => (self.waypoint.1, -1 * self.waypoint.0),
+                    -2 => (-1 * self.waypoint.0, -1 * self.waypoint.1),
+                    -1 => (-1 * self.waypoint.1, self.waypoint.0),
+                    0 => (self.waypoint.0, self.waypoint.1),
+                    1 => (self.waypoint.1, -1 * self.waypoint.0),
+                    2 => (-1 * self.waypoint.0, -1 * self.waypoint.1),
+                    3 => (-1 * self.waypoint.1, self.waypoint.0),
+                    _ => panic!("unsatisiable rotation: {:?}", rotations),
+                };
             }
-            Direction(d) => {
-                self.coords = match d {
-                    Forward(num) => match self.direction {
-                        Facing::North => self.next_pos(North(num)),
-                        Facing::South => self.next_pos(South(num)),
-                        Facing::East => self.next_pos(East(num)),
-                        Facing::West => self.next_pos(West(num)),
-                    },
-                }
+            Direction(Forward(d)) => {
+                // Always relative to ship
+
+                self.coords = (
+                    self.coords.0 + (self.waypoint.0 * d),
+                    self.coords.1 + (self.waypoint.1 * d),
+                )
             }
         }
     }
@@ -130,12 +129,13 @@ fn main() {
     let mut moves = read_input(lines).unwrap();
 
     let mut ship = Ship {
-        direction: Facing::East,
         coords: (0, 0),
+        waypoint: (10, 1),
     };
 
     for m in moves {
-        ship.do_move(m);
+        ship.do_move(&m);
+        println!("{:?}: {:?}", m, ship);
     }
 
     println!("{:?}", ship);
