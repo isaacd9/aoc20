@@ -29,11 +29,7 @@ fn read_input(lines: Lines<StdinLock>) -> Result<Schedule, io::Error> {
     Ok(s)
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let lines = stdin.lock().lines();
-    let sched = read_input(lines).unwrap();
-
+fn find_start_time_and_bus(sched: &Schedule) -> (u64, u64) {
     let mut start_time = sched.timestamp;
     let mut found_time: Option<u64> = None;
     while found_time.is_none() {
@@ -45,9 +41,19 @@ fn main() {
         start_time += 1;
     }
     start_time -= 1;
-    println!("{} @ {}", found_time.unwrap(), start_time);
+    return (found_time.unwrap(), start_time);
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let lines = stdin.lock().lines();
+    let sched = read_input(lines).unwrap();
+
+    let times = find_start_time_and_bus(&sched);
+
+    println!("{} @ {}", times.0, times.1);
     println!(
         "{} ",
-        start_time.checked_sub(sched.timestamp).unwrap() * found_time.unwrap()
+        times.1.checked_sub(sched.timestamp).unwrap() * times.0,
     );
 }
