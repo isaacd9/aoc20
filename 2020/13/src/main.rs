@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::io::{self, BufRead, Error, Lines, StdinLock};
+use std::time::SystemTime;
 
 #[derive(Debug, PartialEq, Clone)]
 struct Schedule {
@@ -65,21 +66,30 @@ impl Schedule {
             start_mult / max.0
         };
 
-        //println("");
-        for t in (start..) {
+        let now = SystemTime::now();
+
+        for t in start.. {
             let mult = max.0 * t;
             let tt = mult.checked_sub(max.1).unwrap();
             //println!("{}, {}", mult, tt);
             let mut all_found = true;
             for eq in &equations {
-                all_found &= (tt + eq.1) % eq.0 == 0;
+                let zero = (tt + eq.1) % eq.0 == 0;
+                if !zero {
+                    all_found = false;
+                    break;
+                }
             }
             if all_found {
                 return tt;
             }
 
             if t % 100000000 == 0 {
-                println!("checkpoint: {}", t)
+                println!(
+                    "checkpoint: {}, {:?}",
+                    tt,
+                    SystemTime::now().duration_since(now)
+                )
             }
         }
         //while !found {
@@ -111,7 +121,7 @@ fn main() {
     let sched = read_input(lines).unwrap();
 
     println!("{:?}", sched.busses);
-    let t = sched.find_earliest_timestamp_by_id(100000000000000);
+    let t = sched.find_earliest_timestamp_by_id(127957999999971);
     println!("{}", t);
 
     //println!("{} @ {}", times.0, times.1);
