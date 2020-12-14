@@ -52,66 +52,32 @@ impl Schedule {
             .busses
             .iter()
             .enumerate()
-            .filter_map(|(i, bus_num)| bus_num.and_then(|n| Some((n as u128, i as u128))))
+            .filter_map(|(i, bus_num)| {
+                bus_num.and_then(|n| Some((n as u128, self.busses.len() as u128 - i as u128 - 1)))
+            })
             .collect();
 
-        let max = &equations.iter().fold(
-            (0, 0),
-            |acc, (n, i)| if *n > acc.0 { (*n, *i) } else { acc },
-        );
+        //println!("{:?}", equations);
+        let product: u128 = equations.iter().map(|eq| eq.0).product();
 
-        let start = if start_mult < max.1 {
-            max.0
-        } else {
-            start_mult / max.0
-        };
+        let mut s: u128 = 0;
+        for eq in equations.iter() {
+            let m = product / eq.0;
+            let coef = m % eq.0;
 
-        let now = SystemTime::now();
-
-        for t in start.. {
-            let mult = max.0 * t;
-            let tt = mult.checked_sub(max.1).unwrap();
-            //println!("{}, {}", mult, tt);
-            let mut all_found = true;
-            for eq in &equations {
-                let zero = (tt + eq.1) % eq.0 == 0;
-                if !zero {
-                    all_found = false;
+            let mut x = 0;
+            for i in 0.. {
+                if ((coef * i) % eq.0) == 1 {
+                    x = i;
                     break;
-                }
+                };
             }
-            if all_found {
-                return tt;
-            }
-
-            if t % 100000000 == 0 {
-                println!(
-                    "checkpoint: {}, {:?}",
-                    tt,
-                    SystemTime::now().duration_since(now)
-                )
-            }
+            //println!("{}x = 1 mod {}, x={}", coef, eq.0, x);
+            let term = eq.1 * m * x;
+            s += term;
+            //println!("{}", term);
         }
-        //while !found {
-        //    let mut inner_found = true;
-        //    for (i, u) in self.busses.iter().enumerate() {
-        //        u.and_then(|v| {
-        //            let this_mod = v.checked_sub((i + 1) as u64);
-        //            if this_mod.is_none() {
-        //                return None;
-        //            }
-        //            if t % v as u128 != this_mod.unwrap() as u128 {
-        //                inner_found = false;
-        //                Some(())
-        //            } else {
-        //                None
-        //            }
-        //        });
-        //    }
-        //    found = inner_found;
-        //    t += 1
-        //}
-        0
+        s % product - self.busses.len() as u128 + 1
     }
 }
 
@@ -120,7 +86,6 @@ fn main() {
     let lines = stdin.lock().lines();
     let sched = read_input(lines).unwrap();
 
-    println!("{:?}", sched.busses);
     let t = sched.find_earliest_timestamp_by_id(127957999999971);
     println!("{}", t);
 
