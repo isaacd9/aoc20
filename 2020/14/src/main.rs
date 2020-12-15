@@ -12,6 +12,7 @@ impl Bitmap {
         let xor = self.0 ^ self.1;
 
         let x_s = xor.count_ones();
+
         (0..2_u64.pow(x_s)).map(move |mut v| {
             let mut x = xor;
             for _ in 0..64 {
