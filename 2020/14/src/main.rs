@@ -10,31 +10,21 @@ struct Bitmap(u64, u64);
 impl Bitmap {
     fn floating_iterator(&self) -> impl Iterator<Item = Bitmap> + '_ {
         let xor = self.0 ^ self.1;
-        let mut val = 0;
 
-        let mut v: Vec<Bitmap> = vec![];
-        while val <= (xor) {
-            let s = (64 - val.leading_zeros()) as i32 - 1;
-            let ss = if s < 0 { 0 } else { s };
-            let k = xor >> ss & 1;
-
-            //println!("{} {} {}", ss, k, val);
-
-            if k == 0 {
-                if val == 0 {
-                    val = 1;
+        let x_s = xor.count_ones();
+        (0..2_u64.pow(x_s)).map(move |mut v| {
+            let mut x = xor;
+            for _ in 0..64 {
+                if x & 1 == 1 {
+                    x &= std::u64::MAX << 1;
+                    x |= v & 1;
+                    v = v.rotate_right(1);
                 }
-                val <<= 1;
-                continue;
+                x = x.rotate_right(1);
             }
 
-            let anded = xor & val;
-            //println!("{:#b} {:#b}", xor, anded);
-            let need_to_set = !xor;
-            v.push(Bitmap(need_to_set, anded));
-            val += 1;
-        }
-        v.into_iter()
+            Bitmap(!xor, x)
+        })
     }
 }
 
@@ -152,10 +142,7 @@ impl Arena {
         let mut cur_mask: Bitmap = Bitmap(std::u64::MAX, 0);
         for instruction in instructions {
             match instruction {
-                Mask(m) => {
-                    println!("setting mask to {}", *m);
-                    cur_mask = *m
-                }
+                Mask(m) => cur_mask = *m,
                 Mem { addr, value } => {
                     let mut a = *addr;
                     // Add 1s
@@ -167,8 +154,6 @@ impl Arena {
                         a &= m.0;
                         // Set 1s
                         a |= m.1;
-                        println!("{:#b}({}) = {}", a, a, *value);
-                        //println!("{}", m);
                         *(self.0).entry(a).or_insert(0) = *value;
                     }
                 }
