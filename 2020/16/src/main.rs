@@ -30,58 +30,26 @@ impl Fields {
             .collect()
     }
 
-    fn map_values_to_field(
-        &self,
-        mut values: Vec<u64>,
-        unusued_fields: Vec<Field>,
-    ) -> Option<Vec<Vec<Field>>> {
-        if unusued_fields.len() == 1 {
-            let val = values.remove(0);
-
-            for (i, field) in unusued_fields.iter().enumerate() {
+    fn fields_matching_values(&self, values: Vec<u64>, fields: Vec<Field>) -> Vec<Field> {
+        let mut possible_fields = vec![];
+        for field in fields.iter() {
+            let mut all_matched = true;
+            for val in &values {
+                let mut some_matched = false;
                 for rule in &field.rules {
                     if rule.contains(&val) {
-                        return Some(vec![vec![field.clone()]]);
+                        some_matched = true;
                     }
                 }
+
+                all_matched &= some_matched;
             }
 
-            return None;
-        } else {
-            let mut possible_orderings = vec![];
-
-            let mut can_find_ordering = false;
-
-            let val = values.remove(0);
-
-            for (i, field) in unusued_fields.iter().enumerate() {
-                for rule in &field.rules {
-                    if rule.contains(&val) {
-                        can_find_ordering = true;
-
-                        let mut remaining_fields = unusued_fields.clone();
-                        remaining_fields.remove(i);
-
-                        let r = self.map_values_to_field(values.clone(), remaining_fields);
-                        match r {
-                            Some(orderings) => {
-                                for order in orderings {
-                                    let mut ret = vec![field.clone()];
-                                    ret.extend(order);
-                                    possible_orderings.push(ret);
-                                }
-                            }
-                            None => return None,
-                        }
-                    }
-                }
+            if all_matched {
+                possible_fields.push(field.clone());
             }
-            if !can_find_ordering {
-                println!("couldn't find place to put {:?}", val);
-                return None;
-            }
-            return Some(possible_orderings);
         }
+        return possible_fields;
     }
 
     fn order_fields_helper(
@@ -89,15 +57,17 @@ impl Fields {
         tickets: &Vec<Ticket>,
         i: usize,
         unusued_fields: Vec<Field>,
-    ) -> Option<Vec<Vec<Field>>> {
+    ) -> Option<Vec<Field>> {
         let values = tickets.iter().map(|t| t.0[i]).collect();
 
         if unusued_fields.len() == 1 {
-            self.map_values_to_field(values, unusued_fields)
+            self.fields_matching_values(values, unusued_fields);
+            None
         } else {
-            match self.map_values_to_field(values, unusued_fields) {
-                Some(fields) => None,
-                None => None,
+            let possible_fields = self.fields_matching_values(values, unusued_fields);
+            match possible_fields.len() {
+                0 => None,
+                _ => None,
             }
         }
     }
@@ -114,43 +84,43 @@ mod tests {
         let f = Fields(vec![]);
 
         // Base case
-        let orderings = f.map_values_to_field(
+        let possible_fields = f.fields_matching_values(
             vec![3, 15, 5],
             vec![
                 Field {
                     name: "row".to_string(),
-                    rules: vec![(0..=3)],
+                    rules: vec![(0..=5), (8..=19)],
                 },
                 Field {
-                    name: "col".to_string(),
-                    rules: vec![(4..=5)],
+                    name: "class".to_string(),
+                    rules: vec![(0..=1), (4..=19)],
                 },
                 Field {
-                    name: "whatever".to_string(),
-                    rules: vec![(10..=15)],
+                    name: "seat".to_string(),
+                    rules: vec![(0..=13), (16..=19)],
                 },
             ],
         );
-        println!("{:?}", orderings);
+        println!("{:?}", possible_fields);
 
-        let orderings = f.map_values_to_field(
-            vec![4, 4, 4],
+        let possible_fields = f.fields_matching_values(
+            vec![9, 1, 14],
             vec![
                 Field {
-                    name: "1".to_string(),
-                    rules: vec![(4..=5)],
+                    name: "row".to_string(),
+                    rules: vec![(0..=5), (8..=19)],
                 },
                 Field {
-                    name: "2".to_string(),
-                    rules: vec![(4..=5)],
+                    name: "class".to_string(),
+                    rules: vec![(0..=1), (4..=19)],
                 },
                 Field {
-                    name: "3".to_string(),
-                    rules: vec![(4..=5)],
+                    name: "seat".to_string(),
+                    rules: vec![(0..=13), (16..=19)],
                 },
             ],
         );
-        println!("{:?}", orderings.len());
+        println!("{:?}", possible_fields);
     }
 }
 
