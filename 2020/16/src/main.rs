@@ -56,23 +56,53 @@ impl Fields {
         &self,
         tickets: &Vec<Ticket>,
         i: usize,
-        unusued_fields: Vec<Field>,
+        unusued_fields: &HashMap<String, Field>,
     ) -> Option<Vec<Field>> {
         let values = tickets.iter().map(|t| t.0[i]).collect();
 
-        if unusued_fields.len() == 1 {
-            self.fields_matching_values(values, unusued_fields);
-            None
+        if i == 0 {
+            let rec =
+                self.fields_matching_values(values, unusued_fields.values().cloned().collect());
+            match rec.len() {
+                0 => None,
+                _ => Some(rec),
+            }
         } else {
-            let possible_fields = self.fields_matching_values(values, unusued_fields);
+            let possible_fields =
+                self.fields_matching_values(values, unusued_fields.values().cloned().collect());
             match possible_fields.len() {
                 0 => None,
-                _ => None,
+                _ => {
+                    for field in possible_fields {
+                        let mut fields_less_this_field = unusued_fields.clone();
+                        fields_less_this_field.remove(&field.name);
+                        match self.order_fields_helper(tickets, i - 1, &fields_less_this_field) {
+                            Some(rec) => {
+                                let mut r = rec.clone();
+                                r.insert(0, field.clone());
+                                return Some(r);
+                            }
+                            None => continue,
+                        }
+                    }
+                    None
+                }
             }
         }
     }
 
-    //fn order_fields(&self, t: &Vec<Ticket>) -> Vec<Field> {}
+    fn order_fields(&self, t: &Vec<Ticket>) -> Vec<Field> {
+        let mut fields_map = HashMap::new();
+        for f in &self.0 {
+            fields_map.insert(f.name.clone(), f.clone());
+        }
+        let mut r = self
+            .order_fields_helper(t, t.len() - 1, &fields_map)
+            .unwrap();
+        let mut k = r.clone();
+        k.reverse();
+        k
+    }
 }
 
 #[cfg(test)]
@@ -203,4 +233,7 @@ fn main() {
         .collect();
 
     println!("{:?}", valid_tickets);
+
+    let order = fields.order_fields(other_tickets);
+    println!("{:?}", order);
 }
