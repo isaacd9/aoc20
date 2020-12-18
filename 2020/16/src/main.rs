@@ -56,40 +56,72 @@ impl Fields {
         &self,
         tickets: &Vec<Ticket>,
         i: usize,
-        unusued_fields: &HashMap<String, Field>,
+        used_field_names: &HashSet<String>,
+        all_fields: &HashMap<usize, Vec<Field>>,
+        mut memo_map: &mut HashMap<(usize, String), Option<Vec<Field>>>,
     ) -> Option<Vec<Field>> {
-        //println!("{:?}, {:?}", i, unusued_fields);
+        let mut memo_key_v: Vec<String> = used_field_names.iter().cloned().collect();
+        memo_key_v.sort();
+        let memo_key: String = memo_key_v.join(" ");
 
-        let values = tickets.iter().map(|t| t.0[i]).collect();
+        match memo_map.get(&(i, memo_key.clone())) {
+            Some(k) => {
+                //println!("hit memo case: {:?}", (i, &memo_key));
+                return k.clone();
+            }
+            None => (),
+        }
 
-        if i == 0 {
-            let rec =
-                self.fields_matching_values(values, unusued_fields.values().cloned().collect());
-            println!("base case: {}, {:?} {:?}", i, rec, unusued_fields);
-            match rec.len() {
+        let possible_fields: Vec<Field> = all_fields[&i]
+            .iter()
+            .filter(|field| !used_field_names.contains(&field.name))
+            .cloned()
+            .collect();
+
+        let ret = if i == 0 {
+            match possible_fields.len() {
                 0 => None,
-                _ => Some(vec![rec[0].clone()]),
+                _ => Some(vec![possible_fields[0].clone()]),
             }
         } else {
-            let possible_fields =
-                self.fields_matching_values(values, unusued_fields.values().cloned().collect());
+            for (field_i, field) in possible_fields.iter().enumerate() {
+                if i == 19 {
+                    println!(
+                        "possible field {} for position {} (out of {})",
+                        field_i,
+                        i,
+                        possible_fields.len()
+                    );
+                }
+                let mut used_field_names = used_field_names.clone();
+                used_field_names.insert(field.name.clone());
 
-            for field in possible_fields {
-                let mut fields_less_this_field = unusued_fields.clone();
-                fields_less_this_field.remove(&field.name);
-
-                match self.order_fields_helper(tickets, i - 1, &fields_less_this_field) {
+                match self.order_fields_helper(
+                    tickets,
+                    i - 1,
+                    &used_field_names,
+                    all_fields,
+                    &mut memo_map,
+                ) {
                     Some(rec) => {
                         let mut r = rec.clone();
                         r.push(field.clone());
-                        return Some(r);
+
+                        let ret = Some(r);
+                        memo_map.insert((i, memo_key), ret.clone());
+
+                        return ret;
                     }
                     None => (),
                 }
             }
 
             None
-        }
+        };
+
+        memo_map.insert((i, memo_key), ret.clone());
+
+        ret
     }
 
     fn precompute_fields(
@@ -116,10 +148,15 @@ impl Fields {
         }
 
         let precomputed = self.precompute_fields(t, &fields_map.values().cloned().collect());
-        println!("{:?}", precomputed);
 
         let r = self
-            .order_fields_helper(t, t[0].0.len() - 1, &fields_map)
+            .order_fields_helper(
+                t,
+                t[0].0.len() - 1,
+                &HashSet::new(),
+                &precomputed,
+                &mut HashMap::new(),
+            )
             .unwrap();
         let k = r.clone();
         k
@@ -191,6 +228,25 @@ mod tests {
             ],
         );
         println!("{:?}", possible_fields);
+
+        let possible_fields = f.fields_matching_values(
+            vec![99, 99, 99],
+            vec![
+                Field {
+                    name: "row".to_string(),
+                    rules: vec![(0..=5), (8..=19)],
+                },
+                Field {
+                    name: "class".to_string(),
+                    rules: vec![(0..=1), (4..=19)],
+                },
+                Field {
+                    name: "seat".to_string(),
+                    rules: vec![(0..=13), (16..=19)],
+                },
+            ],
+        );
+        println!("{:?}", possible_fields);
     }
 }
 
@@ -215,7 +271,7 @@ fn read_tickets(
 fn read_input(lines: &mut Lines<StdinLock>) -> (Fields, Ticket, Vec<Ticket>) {
     let mut unwrapped_lines = lines.map(|li| li.unwrap());
 
-    let field_re = Regex::new(r"(?P<name>\w+): (?P<rule>.*+)").unwrap();
+    let field_re = Regex::new(r"(?P<name>.*+): (?P<rule>.*+)").unwrap();
     let range_re = Regex::new(r"(?P<low>\d+)-(?P<high>\d+)").unwrap();
 
     let fields = unwrapped_lines
@@ -265,7 +321,7 @@ fn main() {
                 sum += v
             }
         }
-        //println!("{:?}", sum);
+        println!("{:?}", sum);
     }
 
     let valid_tickets: Vec<Ticket> = other_tickets
@@ -274,7 +330,11 @@ fn main() {
         .cloned()
         .collect();
 
-    //println!("{:?}", valid_tickets);
+    println!(
+        "{:?} out of {:?} are valid",
+        valid_tickets.len(),
+        other_tickets.len()
+    );
 
     let order = fields.order_fields(&valid_tickets);
     println!(
@@ -285,8 +345,14 @@ fn main() {
             .collect::<Vec<String>>()
     );
 
+    let mut mult = 1;
     for (i, val) in my_ticket.0.iter().enumerate() {
         let field = &order[i as usize];
-        println!("{} -> {}", field.name, val)
+        println!("{} -> {}", field.name, val);
+        if field.name.contains("departure") {
+            println!("multing {} {}", field.name, val);
+            mult *= val;
+        }
     }
+    println!("{}", mult)
 }
