@@ -22,6 +22,7 @@ enum Expr {
     Num(u64),
     Add,
     Mult,
+    Paren,
 }
 
 fn lex_input(lines: Lines<StdinLock>) -> Vec<Vec<Token>> {
@@ -108,20 +109,42 @@ fn polish(tokens: &[Token]) -> Vec<Expr> {
             }
             LParen => {
                 op_stack.insert(0, tok.clone());
+                output_stack.insert(0, Expr::Paren);
             }
             RParen => {
                 let mut done = false;
+                let mut num_popped = 0;
                 while !done {
                     let popped = op_stack.remove(0);
+                    //println!("popped {:?}", popped);
+                    num_popped += 1;
+                    //println!("num {:?}", popped);
+
                     match &popped {
                         Op(o) => {
                             let e = match o {
                                 Operator::Add => Expr::Add,
                                 Operator::Mult => Expr::Mult,
                             };
-                            output_stack.insert(0, e)
+
+                            for i in 0..output_stack.len() {
+                                if output_stack[i] == Expr::Paren {
+                                    //println!("inserting {:?} to {:?}", popped, output_stack);
+                                    output_stack.insert(i + 1, e);
+                                    break;
+                                }
+                            }
                         }
-                        LParen => done = true,
+                        LParen => {
+                            for i in 0..output_stack.len() {
+                                if output_stack[i] == Expr::Paren {
+                                    //println!("inserting {:?} to {:?}", popped, output_stack);
+                                    output_stack.remove(i);
+                                    break;
+                                }
+                            }
+                            done = true
+                        }
                         RParen => (),
                         _ => panic!("unexpected item popped: {:?}", popped),
                     };
@@ -140,29 +163,60 @@ fn polish(tokens: &[Token]) -> Vec<Expr> {
         output_stack.push(e)
     }
 
-    output_stack.reverse();
+    //output_stack.reverse();
 
     output_stack
 }
 
 fn eval_polish(tokens: &[Expr]) -> u64 {
     use crate::Expr::*;
-    println!("{:?}", tokens);
-    match tokens[0] {
-        Num(n) => n,
-        Add => {
-            let r = eval_polish(&tokens[1..tokens.len() - 1])
-                + eval_polish(&tokens[tokens.len() - 1..]);
-            println!("{}", r);
-            r
-        }
-        Mult => {
-            let r = eval_polish(&tokens[tokens.len() - 1..])
-                * eval_polish(&tokens[1..tokens.len() - 1]);
-            println!("{}", r);
-            r
+    //println!("{:?}", tokens);
+    //match tokens[0] {
+    //    Num(n) => n,
+    //    Add => {
+    //        let r = eval_polish(&tokens[1..tokens.len() - 1])
+    //            + eval_polish(&tokens[tokens.len() - 1..]);
+    //        println!("{}", r);
+    //        r
+    //    }
+    //    Mult => {
+    //        let r = eval_polish(&tokens[tokens.len() - 1..])
+    //            * eval_polish(&tokens[1..tokens.len() - 1]);
+    //        println!("{}", r);
+    //        r
+    //    }
+    //    _ => panic!("unexpected"),
+    //}
+    //tokens.reverse();
+    let mut stack: Vec<u64> = vec![];
+
+    let mut sum: u64 = 0;
+    for tok in tokens {
+        match tok {
+            Num(n) => stack.push(*n),
+            Add => {
+                let first = stack.pop();
+                let second = stack.pop();
+
+                //println!("{:?} + {:?}", first, second);
+
+                let result = first.unwrap() + second.unwrap();
+                stack.push(result);
+            }
+            Mult => {
+                let first = stack.pop();
+                let second = stack.pop();
+
+                //println!("{:?} * {:?}", first, second);
+
+                let result = first.unwrap() * second.unwrap();
+                stack.push(result);
+            }
+            Paren => (),
         }
     }
+
+    stack.pop().unwrap()
 }
 
 fn main() {
@@ -172,10 +226,18 @@ fn main() {
 
     //println!("{:?}", &polish(&exprs[0]));
     //println!("{:?}", &exprs[1]);
-    println!("{:?}", &polish(&exprs[0]));
-    println!("{:?}", eval_polish(&polish(&exprs[0])));
+    //println!("{:?}", &polish(&exprs[0]));
+    //println!("{:?}", eval_polish(&polish(&exprs[0])));
     //println!("{:?}", &polish(&exprs[1]));
-    ////println!("{:?}", eval_polish(&polish(&exprs[1])));
+    //println!("{:?}", eval_polish(&polish(&exprs[1])));
     //println!("{:?}", &polish(&exprs[2]));
     //println!("{:?}", &polish(&exprs[3]));
+    //
+    let mut sum = 0;
+    for expr in exprs {
+        let k = eval_polish(&polish(&expr));
+        sum += k;
+        println!("{:?}", k);
+    }
+    println!("{}", sum)
 }
