@@ -48,54 +48,75 @@ fn lex_input(lines: Lines<StdinLock>) -> Vec<Vec<Token>> {
         .collect()
 }
 
-//fn parse_tokens(tokens: Vec<Token>) -> Expr {
-//    //use crate::Expr::*;
-//    use crate::Token::*;
-//
-//    let mut stack: Vec<Token> = vec![];
-//
-//    for tok in tokens {
-//        match tok {
-//        Num(n) => stack.push(tok),
-//        Op(op) => {
-//            let prev_tok = stack.pop();
-//        }
-//    }
-//
-//}
-
-fn polish(tokens: &[Token]) -> Vec<Expr> {
+fn polish_2(tokens: &[Token]) -> Vec<Expr> {
     use crate::Token::*;
+    let mut op_stack: Vec<Token> = vec![];
+    let mut output_stack: Vec<Expr> = vec![];
 
-    //match (tokens[0], tokens[1], tokens[3]) {
-    //    (Num(a), Op(op), Num(b)) => match op {
-    //        Operator::Add => a + b,
-    //        Operator::Mult => a * b,
-    //    },
-    //};
+    for tok in tokens {
+        //println!(
+        //    "output {:?}, op: {:?}, tok: {:?}",
+        //    output_stack, op_stack, tok
+        //);
+        match tok {
+            Num(n) => output_stack.push(Expr::Num(*n)),
+            Op(op) => {
+                match op {
+                    Operator::Add => loop {
+                        let popped = op_stack.pop();
+                        match popped {
+                            Some(Op(Operator::Add)) => output_stack.push(Expr::Add),
+                            Some(_) => {
+                                op_stack.push(popped.unwrap());
+                                break;
+                            }
+                            None => break,
+                        }
+                    },
+                    Operator::Mult => loop {
+                        let popped = op_stack.pop();
+                        match popped {
+                            Some(Op(Operator::Add)) => output_stack.push(Expr::Add),
+                            Some(Op(Operator::Mult)) => output_stack.push(Expr::Mult),
+                            Some(_) => {
+                                op_stack.push(popped.unwrap());
+                                break;
+                            }
+                            None => break,
+                        }
+                    },
+                }
 
-    //tokens[1..]
-    //    .chunks(2)
-    //    .enumerate()
-    //    .fold(acc, |acc, (i, chunk)| {
-    //        println!("{:?}", chunk);
-    //        match (&chunk[0], &chunk[1]) {
-    //            (Op(op), Num(n)) => match op {
-    //                Operator::Add => acc + n,
-    //                Operator::Mult => acc * n,
-    //            },
-    //            (Op(op), LParen) => {
-    //                //println!("recursing with: {:?}", &tokens[i + 3..]);
-    //                match op {
-    //                    Operator::Add => acc + eval_expr(&tokens[i + 3..]),
-    //                    Operator::Mult => acc * eval_expr(&tokens[i + 3..]),
-    //                }
-    //            }
-    //            (RParen, _) => acc,
-    //            _ => panic!("nonsense expr: {:?}", chunk),
-    //        }
-    //    })
-    //
+                op_stack.push(tok.clone())
+            }
+            LParen => op_stack.push(tok.clone()),
+            RParen => loop {
+                let popped = op_stack.pop();
+                match popped {
+                    Some(Op(Operator::Add)) => output_stack.push(Expr::Add),
+                    Some(Op(Operator::Mult)) => output_stack.push(Expr::Mult),
+                    Some(LParen) => break,
+                    _ => break,
+                }
+            },
+        }
+    }
+
+    while op_stack.len() > 0 {
+        let o = op_stack.pop().unwrap();
+        let e = match o {
+            Op(Operator::Add) => Expr::Add,
+            Op(Operator::Mult) => Expr::Mult,
+            _ => panic!("unexpected item popped: {:?}", o),
+        };
+        output_stack.push(e)
+    }
+
+    output_stack
+}
+
+fn polish_1(tokens: &[Token]) -> Vec<Expr> {
+    use crate::Token::*;
     let mut op_stack: Vec<Token> = vec![];
     let mut output_stack: Vec<Expr> = vec![];
 
@@ -224,18 +245,17 @@ fn main() {
     let lines = stdin.lock().lines();
     let exprs = lex_input(lines);
 
-    //println!("{:?}", &polish(&exprs[0]));
-    //println!("{:?}", &exprs[1]);
-    //println!("{:?}", &polish(&exprs[0]));
-    //println!("{:?}", eval_polish(&polish(&exprs[0])));
+    //println!("{:?}", &exprs[0]);
+    //println!("{:?}", &polish_2(&exprs[0]));
+    //println!("{:?}", eval_polish(&polish_2(&exprs[0])));
     //println!("{:?}", &polish(&exprs[1]));
     //println!("{:?}", eval_polish(&polish(&exprs[1])));
     //println!("{:?}", &polish(&exprs[2]));
     //println!("{:?}", &polish(&exprs[3]));
-    //
+
     let mut sum = 0;
     for expr in exprs {
-        let k = eval_polish(&polish(&expr));
+        let k = eval_polish(&polish_2(&expr));
         sum += k;
         println!("{:?}", k);
     }
