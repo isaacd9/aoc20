@@ -62,7 +62,7 @@ mod test {
 }
 
 impl Grammar {
-    fn matches_helper(&self, ss: &[char], rules: &[Disjunction], i: usize) -> Option<usize> {
+    fn matches_helper(&self, ss: &[char], rules: &[Disjunction], i: usize) -> usize {
         use crate::Rule::*;
 
         let d = &rules[i];
@@ -72,31 +72,29 @@ impl Grammar {
             match rule {
                 Terminal(c) => {
                     if ss.get(0) == Some(c) {
-                        return Some(1);
+                        return 1;
                     }
                 }
                 NonTerminal(rule_refs) => {
                     let mut cur_ch: usize = 0;
                     for rule_ref in rule_refs {
-                        let r = self.matches_helper(&ss[cur_ch..], &rules, *rule_ref);
-                        match r {
-                            Some(consumed) => cur_ch += consumed,
-                            None => {
-                                continue 'outer;
-                            }
+                        let consumed = self.matches_helper(&ss[cur_ch..], &rules, *rule_ref);
+                        if consumed == 0 {
+                            continue 'outer;
                         }
+                        cur_ch += consumed;
                     }
 
                     //println!("done with rule_refs {:?}. consumed {:?}", rule_refs, cur_ch);
-                    return Some(cur_ch);
+                    return cur_ch;
                 }
             }
         }
-        None
+        0
     }
 
     fn matches(&self, st: &String) -> bool {
-        self.matches_helper(&st.chars().collect::<Vec<char>>(), &self.rules, 0) == Some(st.len())
+        self.matches_helper(&st.chars().collect::<Vec<char>>(), &self.rules, 0) == st.len()
     }
 }
 
