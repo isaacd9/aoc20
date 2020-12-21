@@ -62,13 +62,13 @@ mod test {
 }
 
 impl Grammar {
-    fn matches_helper(&self, ss: &[char], rules: &[Disjunction]) -> Option<usize> {
+    fn matches_helper(&self, ss: &[char], rules: &[Disjunction], i: usize) -> Option<usize> {
         use crate::Rule::*;
 
-        let d = &rules[0];
-        //println!("evaluating rule {:?} on {:?}", d, ss);
+        let d = &rules[i];
+        //println!("trying dj {:?} ({:?}) on {:?}", i, d, ss);
         'outer: for (i, rule) in d.0.iter().enumerate() {
-            println!("trying rule {}-->{:?} from disjunction {:?}", i, rule, d.0);
+            //println!("trying rule {}-->{:?} from disjunction {:?}", i, rule, d.0);
             match rule {
                 Terminal(c) => {
                     if ss.get(0) == Some(c) {
@@ -78,7 +78,7 @@ impl Grammar {
                 NonTerminal(rule_refs) => {
                     let mut cur_ch: usize = 0;
                     for rule_ref in rule_refs {
-                        let r = self.matches_helper(&ss[cur_ch..], &rules[*rule_ref..]);
+                        let r = self.matches_helper(&ss[cur_ch..], &rules, *rule_ref);
                         match r {
                             Some(consumed) => cur_ch += consumed,
                             None => {
@@ -87,9 +87,8 @@ impl Grammar {
                         }
                     }
 
-                    if cur_ch == ss.len() {
-                        return Some(cur_ch);
-                    }
+                    //println!("done with rule_refs {:?}. consumed {:?}", rule_refs, cur_ch);
+                    return Some(cur_ch);
                 }
             }
         }
@@ -97,7 +96,7 @@ impl Grammar {
     }
 
     fn matches(&self, st: &String) -> bool {
-        self.matches_helper(&st.chars().collect::<Vec<char>>(), &self.rules[0..]) == Some(st.len())
+        self.matches_helper(&st.chars().collect::<Vec<char>>(), &self.rules, 0) == Some(st.len())
     }
 }
 
@@ -149,7 +148,21 @@ fn read_input(lines: Lines<StdinLock>) -> (Grammar, Vec<String>) {
 fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines();
-    let exprs = read_input(lines);
+    let res = read_input(lines);
 
-    //println!("{:?}", exprs);
+    let grammar = res.0;
+    let list = res.1;
+
+    let st = "ababbb".to_string();
+    //println!("{} -> {:?}", st, grammar.matches(&st));
+
+    let mut su = 0;
+    for st in list {
+        let m = grammar.matches(&st);
+        println!("{} -> {:?}", st, m);
+        if m {
+            su += 1;
+        }
+    }
+    println!("{}", su);
 }
