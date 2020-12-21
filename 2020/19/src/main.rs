@@ -17,6 +17,91 @@ struct Grammar {
     rules: Vec<Disjunction>,
 }
 
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_matches_helper() {
+        use crate::Rule::*;
+
+        let g = Grammar {
+            rules: vec![Disjunction(vec![Terminal('a')])],
+        };
+
+        assert_eq!(g.matches(&"a".to_string()), true);
+        assert_eq!(g.matches(&"b".to_string()), false);
+        assert_eq!(g.matches(&"ab".to_string()), false);
+        assert_eq!(g.matches(&"ba".to_string()), false);
+        assert_eq!(g.matches(&"aab".to_string()), false);
+        assert_eq!(g.matches(&"bba".to_string()), false);
+
+        let g = Grammar {
+            rules: vec![
+                Disjunction(vec![NonTerminal(vec![1, 2])]),
+                Disjunction(vec![Terminal('a')]),
+                Disjunction(vec![Terminal('b')]),
+            ],
+        };
+
+        assert_eq!(g.matches(&"a".to_string()), false);
+        assert_eq!(g.matches(&"b".to_string()), false);
+        assert_eq!(g.matches(&"ab".to_string()), true);
+
+        let g = Grammar {
+            rules: vec![
+                Disjunction(vec![NonTerminal(vec![1]), NonTerminal(vec![2])]),
+                Disjunction(vec![Terminal('a')]),
+                Disjunction(vec![Terminal('b')]),
+            ],
+        };
+
+        assert_eq!(g.matches(&"a".to_string()), true);
+        assert_eq!(g.matches(&"b".to_string()), true);
+        assert_eq!(g.matches(&"ab".to_string()), false);
+    }
+}
+
+impl Grammar {
+    fn matches_helper(&self, ss: &[char], rules: &[Disjunction]) -> Option<usize> {
+        use crate::Rule::*;
+
+        let d = &rules[0];
+        //println!("evaluating rule {:?} on {:?}", d, ss);
+        for (i, rule) in d.0.iter().enumerate() {
+            println!("trying rule {}-->{:?} from disjunction {:?}", i, rule, d.0);
+            match rule {
+                Terminal(c) => {
+                    if ss.get(0) == Some(c) {
+                        return Some(1);
+                    }
+                }
+                NonTerminal(rule_refs) => {
+                    let mut cur_ch: usize = 0;
+                    for rule_ref in rule_refs {
+                        let r = self.matches_helper(&ss[cur_ch..], &rules[*rule_ref..]);
+                        match r {
+                            Some(consumed) => cur_ch += consumed,
+                            None => {
+                                cur_ch = 0;
+                                break;
+                            }
+                        }
+                    }
+
+                    if cur_ch == ss.len() {
+                        return Some(cur_ch);
+                    }
+                }
+            }
+        }
+        None
+    }
+
+    fn matches(&self, st: &String) -> bool {
+        self.matches_helper(&st.chars().collect::<Vec<char>>(), &self.rules[0..]) == Some(st.len())
+    }
+}
+
 fn read_input(lines: Lines<StdinLock>) -> (Grammar, Vec<String>) {
     let mut unwrapped_lines = lines.map(|li| li.unwrap());
 
