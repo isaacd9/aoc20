@@ -67,7 +67,7 @@ impl Grammar {
 
         let d = &rules[0];
         //println!("evaluating rule {:?} on {:?}", d, ss);
-        for (i, rule) in d.0.iter().enumerate() {
+        'outer: for (i, rule) in d.0.iter().enumerate() {
             println!("trying rule {}-->{:?} from disjunction {:?}", i, rule, d.0);
             match rule {
                 Terminal(c) => {
@@ -82,8 +82,7 @@ impl Grammar {
                         match r {
                             Some(consumed) => cur_ch += consumed,
                             None => {
-                                cur_ch = 0;
-                                break;
+                                continue 'outer;
                             }
                         }
                     }
