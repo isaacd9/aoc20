@@ -112,23 +112,24 @@ impl Grammar {
         loop {
             let consumed_forty_two = self.matches_helper(&chars[cur_ch..], 42);
             let consumed_thirty_one = self.matches_helper(&chars[cur_ch..], 31);
-            println!("{} {}", consumed_forty_two, consumed_thirty_one);
 
+            //println!("{} {}", consumed_forty_two, consumed_thirty_one);
             if consumed_thirty_one > 0 {
                 done_w_forty_two = true;
             }
+
+            cur_ch += consumed_thirty_one;
+            cur_ch += consumed_forty_two;
 
             if done_w_forty_two {
                 if consumed_thirty_one == 0 {
                     break;
                 }
-                cur_ch += consumed_thirty_one;
                 thirty_one_consumptions += 1;
             } else {
                 if consumed_forty_two == 0 {
                     break;
                 }
-                cur_ch += consumed_forty_two;
                 forty_two_consumptions += 1;
             }
         }
@@ -183,17 +184,15 @@ fn main() {
 
     let grammar = res.0;
     let list = res.1;
-
-    let st = "ababbb".to_string();
     //println!("{} -> {:?}", st, grammar.matches(&st));
 
     let mut su = 0;
-    for st in list {
+    for st in &list {
         let m = grammar.matches(&st);
         println!("{} -> {:?}", st, m);
         if m {
             su += 1;
         }
     }
-    println!("{}", su);
+    println!("{} / {}", su, list.len());
 }
