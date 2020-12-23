@@ -44,8 +44,23 @@ struct Tile {
     pixels: Vec<Vec<Pixel>>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
 struct Side(Vec<Pixel>);
 
+impl Side {
+    fn to_string(&self) -> String {
+        self.0
+            .iter()
+            .map(|p| match p {
+                Pixel::Illuminated => "1",
+                Pixel::NotIlluminated => "0",
+            })
+            .collect::<Vec<&str>>()
+            .concat()
+    }
+}
+
+#[derive(Debug, PartialEq, Clone)]
 struct Sides {
     top: Side,
     left: Side,
@@ -63,7 +78,7 @@ impl Tile {
                     .map(|row| row[0].clone())
                     .collect::<Vec<Pixel>>(),
             ),
-            bottom: Side(self.pixels[0].iter().cloned().collect()),
+            bottom: Side(self.pixels[self.pixels.len() - 1].iter().cloned().collect()),
             right: Side(
                 self.pixels
                     .iter()
@@ -126,5 +141,68 @@ fn main() {
     let lines = stdin.lock().lines();
     let tiles = read_input(lines);
 
-    println!("{}", tiles[0]);
+    let mut m: HashMap<String, Vec<u64>> = HashMap::new();
+    for tile in &tiles {
+        let sides = tile.sides();
+        //println!(
+        //    "{}: {:?} {:?} {:?} {:?}",
+        //    tile.number,
+        //    sides.top.to_string(),
+        //    sides.left.to_string(),
+        //    sides.bottom.to_string(),
+        //    sides.right.to_string(),
+        //);
+
+        (*m.entry(sides.top.to_string()).or_default()).push(tile.number);
+        (*m.entry(sides.left.to_string()).or_default()).push(tile.number);
+        (*m.entry(sides.bottom.to_string()).or_default()).push(tile.number);
+        (*m.entry(sides.right.to_string()).or_default()).push(tile.number);
+
+        (*m.entry(sides.top.to_string().chars().rev().collect())
+            .or_default())
+        .push(tile.number);
+        (*m.entry(sides.left.to_string().chars().rev().collect())
+            .or_default())
+        .push(tile.number);
+        (*m.entry(sides.bottom.to_string().chars().rev().collect())
+            .or_default())
+        .push(tile.number);
+        (*m.entry(sides.right.to_string().chars().rev().collect())
+            .or_default())
+        .push(tile.number);
+    }
+
+    let mut candidates: Vec<u64> = vec![];
+
+    for tile in &tiles {
+        let sides = tile.sides();
+
+        let sides = vec![
+            m.get(&sides.top.to_string()),
+            m.get(&sides.left.to_string()),
+            m.get(&sides.bottom.to_string()),
+            m.get(&sides.right.to_string()),
+        ];
+
+        let c = sides
+            .iter()
+            .map(|k| k.unwrap())
+            .filter(|k| k.len() == 1)
+            .count();
+
+        if c >= 2 {
+            //println!("{}: {:?}", tile.number, sides);
+            //println!("{}", tile.number);
+            candidates.push(tile.number);
+        }
+
+        //println!("{}: {:?}", tile.number, sides);
+    }
+
+    //println!("{}", &(top_left.unwrap()).number);
+    //println!("{}", &(bottom_left.unwrap()).number);
+    //println!("{}", &bottom_right.unwrap().number);
+    //println!("{}", &top_right.unwrap().number);
+
+    println!("{}", candidates.iter().fold(1, |acc, a| acc * a));
 }
