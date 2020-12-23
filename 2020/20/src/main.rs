@@ -44,6 +44,36 @@ struct Tile {
     pixels: Vec<Vec<Pixel>>,
 }
 
+struct Side(Vec<Pixel>);
+
+struct Sides {
+    top: Side,
+    left: Side,
+    bottom: Side,
+    right: Side,
+}
+
+impl Tile {
+    fn sides(&self) -> Sides {
+        Sides {
+            top: Side(self.pixels[0].iter().cloned().collect()),
+            left: Side(
+                self.pixels
+                    .iter()
+                    .map(|row| row[0].clone())
+                    .collect::<Vec<Pixel>>(),
+            ),
+            bottom: Side(self.pixels[0].iter().cloned().collect()),
+            right: Side(
+                self.pixels
+                    .iter()
+                    .map(|row| row[row.len() - 1].clone())
+                    .collect::<Vec<Pixel>>(),
+            ),
+        }
+    }
+}
+
 impl fmt::Display for Tile {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let st: String = self
