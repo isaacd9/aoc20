@@ -136,13 +136,9 @@ fn read_input(lines: Lines<StdinLock>) -> Vec<Tile> {
     tiles
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let lines = stdin.lock().lines();
-    let tiles = read_input(lines);
-
+fn build_side_map(tiles: &Vec<Tile>) -> HashMap<String, Vec<u64>> {
     let mut m: HashMap<String, Vec<u64>> = HashMap::new();
-    for tile in &tiles {
+    for tile in tiles {
         let sides = tile.sides();
         //println!(
         //    "{}: {:?} {:?} {:?} {:?}",
@@ -172,9 +168,13 @@ fn main() {
         .push(tile.number);
     }
 
+    m
+}
+
+fn find_corners(tiles: &Vec<Tile>, m: &HashMap<String, Vec<u64>>) -> Vec<u64> {
     let mut candidates: Vec<u64> = vec![];
 
-    for tile in &tiles {
+    for tile in tiles {
         let sides = tile.sides();
 
         let sides = vec![
@@ -198,11 +198,66 @@ fn main() {
 
         //println!("{}: {:?}", tile.number, sides);
     }
+    candidates
+}
+
+fn build_image(
+    tiles: &Vec<Tile>,
+    side_map: &HashMap<String, Vec<u64>>,
+    tile_map: &HashMap<u64, Tile>,
+
+    result: &mut Vec<Vec<u64>>,
+    visited: &mut HashSet<u64>,
+    start_tile: u64,
+    index: (u64, u64),
+) {
+    if visited.get(&start_tile).is_some() {
+        return;
+    }
+
+    let tile = &tile_map[&start_tile];
+    let sides = tile.sides();
+
+    let sides = vec![
+        side_map.get(&sides.top.to_string()),
+        side_map.get(&sides.left.to_string()),
+        side_map.get(&sides.bottom.to_string()),
+        side_map.get(&sides.right.to_string()),
+    ];
+
+    visited.insert(start_tile);
+
+    for side in sides {
+        for tile_num in side.unwrap() {}
+    }
+}
+
+fn main() {
+    let stdin = io::stdin();
+    let lines = stdin.lock().lines();
+    let tiles = read_input(lines);
+
+    let tile_map: HashMap<u64, Tile> = tiles
+        .iter()
+        .map(|tile| (tile.number, tile.clone()))
+        .collect();
+
+    let m = build_side_map(&tiles);
+    let candidates = find_corners(&tiles, &m);
 
     //println!("{}", &(top_left.unwrap()).number);
     //println!("{}", &(bottom_left.unwrap()).number);
     //println!("{}", &bottom_right.unwrap().number);
     //println!("{}", &top_right.unwrap().number);
 
-    println!("{}", candidates.iter().fold(1, |acc, a| acc * a));
+    //let res = build_image(&tiles, &m, &tile_map, &mut HashSet::new(), 1951, (0, 0));
+
+    //let heads = tiles.filter(|tile| {});
+    println!(
+        "{:?}",
+        m.values()
+            .filter(|v| v.len() == 1)
+            .collect::<Vec<&Vec<u64>>>()
+    );
+    //println!("{}", candidates.iter().fold(1, |acc, a| acc * a));
 }
