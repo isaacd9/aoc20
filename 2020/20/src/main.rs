@@ -45,6 +45,14 @@ struct Tile {
 }
 
 #[derive(Debug, PartialEq, Clone)]
+enum Direction {
+    Top,
+    Left,
+    Bottom,
+    Right,
+}
+
+#[derive(Debug, PartialEq, Clone)]
 struct Side(Vec<Pixel>);
 
 impl Side {
@@ -61,31 +69,37 @@ impl Side {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-struct Sides {
-    top: Side,
-    left: Side,
-    bottom: Side,
-    right: Side,
-}
+struct Sides(Vec<(Direction, Side)>);
 
 impl Tile {
     fn sides(&self) -> Sides {
-        Sides {
-            top: Side(self.pixels[0].iter().cloned().collect()),
-            left: Side(
-                self.pixels
-                    .iter()
-                    .map(|row| row[0].clone())
-                    .collect::<Vec<Pixel>>(),
+        use crate::Direction::*;
+
+        Sides(vec![
+            (Top, Side(self.pixels[0].iter().cloned().collect())),
+            (
+                Left,
+                Side(
+                    self.pixels
+                        .iter()
+                        .map(|row| row[0].clone())
+                        .collect::<Vec<Pixel>>(),
+                ),
             ),
-            bottom: Side(self.pixels[self.pixels.len() - 1].iter().cloned().collect()),
-            right: Side(
-                self.pixels
-                    .iter()
-                    .map(|row| row[row.len() - 1].clone())
-                    .collect::<Vec<Pixel>>(),
+            (
+                Bottom,
+                Side(self.pixels[self.pixels.len() - 1].iter().cloned().collect()),
             ),
-        }
+            (
+                Right,
+                Side(
+                    self.pixels
+                        .iter()
+                        .map(|row| row[row.len() - 1].clone())
+                        .collect::<Vec<Pixel>>(),
+                ),
+            ),
+        ])
     }
 }
 
@@ -136,8 +150,8 @@ fn read_input(lines: Lines<StdinLock>) -> Vec<Tile> {
     tiles
 }
 
-fn build_side_map(tiles: &Vec<Tile>) -> HashMap<String, Vec<u64>> {
-    let mut m: HashMap<String, Vec<u64>> = HashMap::new();
+fn build_side_map(tiles: &Vec<Tile>) -> HashMap<String, Vec<(Direction, u64)>> {
+    let mut m: HashMap<String, Vec<(Direction, u64)>> = HashMap::new();
     for tile in tiles {
         let sides = tile.sides();
         //println!(
@@ -149,43 +163,24 @@ fn build_side_map(tiles: &Vec<Tile>) -> HashMap<String, Vec<u64>> {
         //    sides.right.to_string(),
         //);
 
-        (*m.entry(sides.top.to_string()).or_default()).push(tile.number);
-        (*m.entry(sides.left.to_string()).or_default()).push(tile.number);
-        (*m.entry(sides.bottom.to_string()).or_default()).push(tile.number);
-        (*m.entry(sides.right.to_string()).or_default()).push(tile.number);
-
-        (*m.entry(sides.top.to_string().chars().rev().collect())
-            .or_default())
-        .push(tile.number);
-        (*m.entry(sides.left.to_string().chars().rev().collect())
-            .or_default())
-        .push(tile.number);
-        (*m.entry(sides.bottom.to_string().chars().rev().collect())
-            .or_default())
-        .push(tile.number);
-        (*m.entry(sides.right.to_string().chars().rev().collect())
-            .or_default())
-        .push(tile.number);
+        for side in sides.0 {
+            (*m.entry(side.1.to_string()).or_default()).push((side.0, tile.number));
+        }
     }
 
     m
 }
 
-fn find_corners(tiles: &Vec<Tile>, m: &HashMap<String, Vec<u64>>) -> Vec<u64> {
+fn find_corners(tiles: &Vec<Tile>, m: &HashMap<String, Vec<(Direction, u64)>>) -> Vec<u64> {
     let mut candidates: Vec<u64> = vec![];
 
     for tile in tiles {
-        let sides = tile.sides();
-
-        let sides = vec![
-            m.get(&sides.top.to_string()),
-            m.get(&sides.left.to_string()),
-            m.get(&sides.bottom.to_string()),
-            m.get(&sides.right.to_string()),
-        ];
-
-        let c = sides
+        let c = tile
+            .sides()
+            .0
             .iter()
+            .map(|side| side.1.to_string())
+            .map(|side_str| m.get(&side_str))
             .map(|k| k.unwrap())
             .filter(|k| k.len() == 1)
             .count();
@@ -209,27 +204,20 @@ fn build_image(
     result: &mut Vec<Vec<u64>>,
     visited: &mut HashSet<u64>,
     start_tile: u64,
-    index: (u64, u64),
+    index: (usize, usize),
+    incoming_direction:
 ) {
     if visited.get(&start_tile).is_some() {
         return;
     }
 
     let tile = &tile_map[&start_tile];
-    let sides = tile.sides();
-
-    let sides = vec![
-        side_map.get(&sides.top.to_string()),
-        side_map.get(&sides.left.to_string()),
-        side_map.get(&sides.bottom.to_string()),
-        side_map.get(&sides.right.to_string()),
-    ];
+    let sides = tile.sides().0;
 
     visited.insert(start_tile);
+    result[index.0][index.1] = start_tile;
 
-    for side in sides {
-        for tile_num in side.unwrap() {}
-    }
+    for (direction, tile_num) in sides {}
 }
 
 fn main() {
@@ -257,7 +245,7 @@ fn main() {
         "{:?}",
         m.values()
             .filter(|v| v.len() == 1)
-            .collect::<Vec<&Vec<u64>>>()
+            .collect::<Vec<&Vec<(Direction, u64)>>>()
     );
     //println!("{}", candidates.iter().fold(1, |acc, a| acc * a));
 }
