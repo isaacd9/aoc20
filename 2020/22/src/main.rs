@@ -48,22 +48,24 @@ impl Game {
         let one_card = self.deck_one.remove(0);
         let two_card = self.deck_two.remove(0);
 
-        let mut player_one_wins = true;
         //println!("{} {}", one_card, two_card);
-
-        if one_card as usize <= self.deck_one.len() && two_card as usize <= self.deck_two.len() {
+        let player_one_wins = if one_card as usize <= self.deck_one.len()
+            && two_card as usize <= self.deck_two.len()
+        {
             // Recursive Combat
             //println!("RECURSIVE COMBAT!!!");
             let mut new_game = self.clone();
-            player_one_wins = new_game.play_recursive().1;
+            new_game.deck_one.drain(one_card as usize..);
+            new_game.deck_two.drain(two_card as usize..);
+            new_game.play_recursive().1
         } else {
             // Regular Combat
             if one_card > two_card {
-                player_one_wins = true;
+                true
             } else {
-                player_one_wins = false;
+                false
             }
-        }
+        };
 
         if player_one_wins {
             self.deck_one.push(one_card);
@@ -93,14 +95,15 @@ impl Game {
         let mut prev_positions = HashSet::<String>::new();
 
         while self.deck_one.len() > 0 && self.deck_two.len() > 0 {
+            //println!("playing round {:?}", rounds);
             self.play_one_round_recursive();
             if prev_positions.contains(&self.serialize_game()) {
-                return (self.calculate_score().0, true);
+                return (0, true);
             }
             rounds += 1;
             prev_positions.insert(self.serialize_game());
         }
-        //println!("payed {:?} rounds", rounds);
+        //println!("game over. played {:?} rounds", rounds,);
         self.calculate_score()
     }
 
@@ -136,8 +139,8 @@ fn main() {
     let mut game_one = game.clone();
     let mut game_two = game.clone();
 
-    let score = game_one.play();
-    println!("{:?}", score);
+    //let score = game_one.play();
+    //println!("{:?}", score);
 
     let score = game_two.play_recursive();
     println!("{:?}", score);
