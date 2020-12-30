@@ -159,7 +159,11 @@ impl Board {
                     (Color::White, _) => Color::White,
                 };
 
-                b.tiles.insert(key_adj, new);
+                if new == Color::Black {
+                    b.tiles.insert(key_adj, new);
+                } else {
+                    b.tiles.remove(&key_adj);
+                }
             }
         }
         b
