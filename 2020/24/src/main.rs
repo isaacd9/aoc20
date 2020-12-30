@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::io::{self, BufRead, Error, Lines, StdinLock};
+use std::iter;
 use std::iter::FromIterator;
 
 #[derive(Debug, PartialEq, Clone)]
@@ -90,6 +91,15 @@ struct Board {
     tiles: HashMap<(i64, i64, i64), Color>,
 }
 
+static COORDS: &'static [(i64, i64, i64)] = &[
+    (1, 1, 0),
+    (1, 0, -1),
+    (0, -1, -1),
+    (-1, -1, 0),
+    (-1, 0, 1),
+    (0, 1, 1),
+];
+
 impl Board {
     fn from_paths(paths: &[Path]) -> Board {
         let mut m: HashMap<(i64, i64, i64), Color> = HashMap::new();
@@ -108,6 +118,56 @@ impl Board {
 
         Board { tiles: m }
     }
+
+    fn count_black_adjacent(&self, coord: &(i64, i64, i64)) -> u64 {
+        COORDS
+            .iter()
+            .map(|direction| {
+                let moved = (
+                    coord.0 + direction.0,
+                    coord.1 + direction.1,
+                    coord.2 + direction.2,
+                );
+
+                //println!("checking color of {:?}", moved);
+                self.tiles.get(&moved).unwrap_or(&Color::White)
+            })
+            .filter(|color| **color == Color::Black)
+            .count() as u64
+    }
+
+    fn iterate(&self) -> Board {
+        let mut b = self.clone();
+
+        for (key, _) in self.tiles.iter() {
+            //println!("examining {:?}", key);
+            for diff in COORDS.iter().chain(iter::once(&(0, 0, 0))) {
+                let key_adj = (key.0 + diff.0, key.1 + diff.1, key.2 + diff.2);
+                //let key_adj = (key.0, key.1, key.2);
+                //println!("examining {:?}", key_adj);
+                let adj = self.count_black_adjacent(&key_adj);
+                //println!("{:?} has {} adjacent black tiles", key_adj, adj);
+
+                let v = self.tiles.get(&key_adj).unwrap_or(&Color::White);
+
+                let new = match (v, adj) {
+                    (Color::Black, 0) => Color::White,
+                    (Color::Black, 1) => Color::Black,
+                    (Color::Black, 2) => Color::Black,
+                    (Color::Black, _) => Color::White,
+                    (Color::White, 2) => Color::Black,
+                    (Color::White, _) => Color::White,
+                };
+
+                b.tiles.insert(key_adj, new);
+            }
+        }
+        b
+    }
+
+    fn count_black(&self) -> u64 {
+        self.tiles.values().filter(|c| **c == Color::Black).count() as u64
+    }
 }
 
 fn main() {
@@ -115,8 +175,14 @@ fn main() {
     let lines = stdin.lock().lines();
     let paths = read_input(lines);
 
-    let board = Board::from_paths(&paths);
+    let mut board = Board::from_paths(&paths);
 
-    let count_black = board.tiles.values().filter(|c| **c == Color::Black).count();
-    println!("{}", count_black)
+    println!("{}", board.count_black());
+
+    for i in 0..=100 {
+        println!("Day {}: {}", i, board.count_black());
+        board = board.iterate();
+    }
+    //println!("{}", board.iterate().count_black());
+    //println!("{}", board.iterate().iterate().count_black());
 }
