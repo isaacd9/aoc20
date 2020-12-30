@@ -79,21 +79,44 @@ fn read_input(lines: Lines<StdinLock>) -> Vec<Path> {
         .collect()
 }
 
+#[derive(Debug, PartialEq, Clone)]
+enum Color {
+    Black,
+    White,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+struct Board {
+    tiles: HashMap<(i64, i64, i64), Color>,
+}
+
+impl Board {
+    fn from_paths(paths: &[Path]) -> Board {
+        let mut m: HashMap<(i64, i64, i64), Color> = HashMap::new();
+
+        for path in paths {
+            let p = path.traverse();
+            m.entry(p)
+                .and_modify(|c| {
+                    *c = match c {
+                        Color::Black => Color::White,
+                        Color::White => Color::Black,
+                    };
+                })
+                .or_insert(Color::Black);
+        }
+
+        Board { tiles: m }
+    }
+}
+
 fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines();
-    let mut paths = read_input(lines);
+    let paths = read_input(lines);
 
-    let mut m: HashMap<(i64, i64, i64), u64> = HashMap::new();
-    for path in paths {
-        let p = path.traverse();
-        //println!("{:?}", p);
-        *m.entry(p).or_default() += 1;
-    }
+    let board = Board::from_paths(&paths);
 
-    let count_black = m
-        .values()
-        .filter(|num_identified| *num_identified % 2 == 1)
-        .count();
+    let count_black = board.tiles.values().filter(|c| **c == Color::Black).count();
     println!("{}", count_black)
 }
