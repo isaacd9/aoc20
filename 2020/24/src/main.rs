@@ -18,6 +18,25 @@ struct Path {
     directions: Vec<Direction>,
 }
 
+impl Path {
+    fn traverse(&self) -> (i64, i64, i64) {
+        use Direction::*;
+
+        let transitions = self.directions.iter().map(|direction| match direction {
+            East => (1, 1, 0),
+            SouthEast => (1, 0, -1),
+            SouthWest => (0, -1, -1),
+            West => (-1, -1, 0),
+            NorthWest => (-1, 0, 1),
+            NorthEast => (0, 1, 1),
+        });
+
+        transitions.fold((0, 0, 0), |cur, tr| {
+            (cur.0 + tr.0, cur.1 + tr.1, cur.2 + tr.2)
+        })
+    }
+}
+
 fn match_first_ch(line: &String) -> (Option<Direction>, usize) {
     //println!("matching on {} ({})", line, line.len());
     if line.len() > 1 {
@@ -64,5 +83,17 @@ fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines();
     let mut paths = read_input(lines);
-    println!("{:?}", paths)
+
+    let mut m: HashMap<(i64, i64, i64), u64> = HashMap::new();
+    for path in paths {
+        let p = path.traverse();
+        //println!("{:?}", p);
+        *m.entry(p).or_default() += 1;
+    }
+
+    let count_black = m
+        .values()
+        .filter(|num_identified| *num_identified % 2 == 1)
+        .count();
+    println!("{}", count_black)
 }
