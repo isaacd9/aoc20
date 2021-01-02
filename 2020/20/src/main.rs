@@ -197,90 +197,86 @@ fn find_corners(tiles: &Vec<Tile>, m: &HashMap<String, Vec<(Direction, u64)>>) -
         .collect()
 }
 
-fn find_complimentary_tile(
-    side_map: &HashMap<String, Vec<(Direction, u64)>>,
-    tile_map: &HashMap<u64, Tile>,
-    used: &HashSet<u64>,
-
-    in_tile_no: u64,
-) -> u64 {
-    let left_tile = &tile_map[&in_tile_no];
-    let mut r = 0;
-
-    for side in left_tile.sides().0.iter() {
-        let maybe_matched_tile = side_map[&side.1.to_string()]
-            .iter()
-            .filter(|(_direction, tile_no)| *tile_no != in_tile_no)
-            .nth(0);
-
-        if maybe_matched_tile.is_none() {
-            continue;
-        }
-
-        let matched_tile = maybe_matched_tile.unwrap().1;
-
-        if used.contains(&matched_tile) {
-            continue;
-        }
-
-        return matched_tile;
-    }
-
-    0
+struct Image<'a> {
+    tiles: &'a Vec<Tile>,
+    side_map: &'a HashMap<String, Vec<(Direction, u64)>>,
+    tile_map: &'a HashMap<u64, Tile>,
 }
 
-fn build_image(
-    tiles: &Vec<Tile>,
-    side_map: &HashMap<String, Vec<(Direction, u64)>>,
-    tile_map: &HashMap<u64, Tile>,
+impl Image<'_> {
+    fn find_complimentary_tile(&self, used: &HashSet<u64>, in_tile_no: u64) -> u64 {
+        let left_tile = &self.tile_map[&in_tile_no];
+        let mut r = 0;
 
-    corners: &Vec<u64>,
-) -> Vec<Vec<u64>> {
-    use Direction::*;
-    let size = (tiles.len() as f64).sqrt() as usize;
-    let mut board = vec![vec![0; size]; size];
+        for side in left_tile.sides().0.iter() {
+            let maybe_matched_tile = self.side_map[&side.1.to_string()]
+                .iter()
+                .filter(|(_direction, tile_no)| *tile_no != in_tile_no)
+                .nth(0);
 
-    let first_corner_no = &corners[0];
-    let first_corner = &tile_map[first_corner_no];
+            if maybe_matched_tile.is_none() {
+                continue;
+            }
 
-    let first_side = first_corner
-        .sides()
-        .0
-        .iter()
-        .filter(|dir_side| {
-            let matches = &side_map[&dir_side.1.to_string()];
-            matches.len() > 1
-        })
-        .map(|side| side.1.to_string())
-        .nth(0);
+            let matched_tile = maybe_matched_tile.unwrap().1;
 
-    let mut used: HashSet<u64> = HashSet::new();
+            if used.contains(&matched_tile) {
+                continue;
+            }
 
-    board[0][0] = *first_corner_no;
-    used.insert(*first_corner_no);
-
-    for row in 0..size {
-        if row != 0 {
-            let above_tile_no = board[row - 1][0];
-
-            let comp = find_complimentary_tile(side_map, tile_map, &used, above_tile_no);
-
-            board[row][0] = comp;
-            used.insert(comp);
+            return matched_tile;
         }
-        for col in 1..size {
-            let left_tile_no = board[row][col - 1];
 
-            let comp = find_complimentary_tile(side_map, tile_map, &used, left_tile_no);
-
-            board[row][col] = comp;
-            used.insert(comp);
-
-            println!("{:?}", board)
-        }
+        0
     }
 
-    board
+    fn build_image(&self, corners: &Vec<u64>) -> Vec<Vec<u64>> {
+        use Direction::*;
+        let size = (self.tiles.len() as f64).sqrt() as usize;
+        let mut board = vec![vec![0; size]; size];
+
+        let first_corner_no = &corners[0];
+        let first_corner = &self.tile_map[first_corner_no];
+
+        let first_side = first_corner
+            .sides()
+            .0
+            .iter()
+            .filter(|dir_side| {
+                let matches = &self.side_map[&dir_side.1.to_string()];
+                matches.len() > 1
+            })
+            .map(|side| side.1.to_string())
+            .nth(0);
+
+        let mut used: HashSet<u64> = HashSet::new();
+
+        board[0][0] = *first_corner_no;
+        used.insert(*first_corner_no);
+
+        for row in 0..size {
+            if row != 0 {
+                let above_tile_no = board[row - 1][0];
+
+                let comp = self.find_complimentary_tile(&used, above_tile_no);
+
+                board[row][0] = comp;
+                used.insert(comp);
+            }
+            for col in 1..size {
+                let left_tile_no = board[row][col - 1];
+
+                let comp = self.find_complimentary_tile(&used, left_tile_no);
+
+                board[row][col] = comp;
+                used.insert(comp);
+
+                println!("{:?}", board)
+            }
+        }
+
+        board
+    }
 }
 
 fn main() {
@@ -302,6 +298,11 @@ fn main() {
 
     //println!("{:?}", tiles.len());
 
-    let result = build_image(&tiles, &side_map, &tile_map, &corners);
+    let result = Image {
+        tiles: &tiles,
+        side_map: &side_map,
+        tile_map: &tile_map,
+    }
+    .build_image(&corners);
     println!("{:?}", result);
 }
