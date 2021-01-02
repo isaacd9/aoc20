@@ -212,33 +212,37 @@ impl Image<'_> {
         surrounding_tile_nos: Vec<u64>,
     ) -> Vec<u64> {
         let mut surrounding_tiles = surrounding_tile_nos.iter().map(|s| &self.tile_map[&s]);
-        //println!("{:?}", surrounding_tile_nos);
 
         let first_tile = surrounding_tiles.nth(0);
         if first_tile.is_none() {
             return vec![];
         }
+        //println!("first tile: {:?}", surrounding_tile_nos[0]);
 
         let mut matched_tiles: Vec<u64> = vec![];
         for side in first_tile.unwrap().sides().0.iter() {
-            let maybe_matched_tile = self.side_map[&side.1.to_string()]
-                .iter()
-                .filter(|(_direction, tile_no)| *tile_no != surrounding_tile_nos[0])
-                .nth(0);
+            for k in vec![&side.1.to_string()] {
+                let maybe_matched_tile = self.side_map[k]
+                    .iter()
+                    .filter(|(_direction, tile_no)| *tile_no != surrounding_tile_nos[0])
+                    .nth(0);
+                //println!("checking tile {:?}, {:?}", maybe_matched_tile, used);
 
-            if maybe_matched_tile.is_none() {
-                continue;
+                if maybe_matched_tile.is_none() {
+                    continue;
+                }
+
+                let matched_tile = maybe_matched_tile.unwrap().1;
+
+                if used.contains(&matched_tile) {
+                    continue;
+                }
+
+                matched_tiles.push(matched_tile);
             }
-
-            let matched_tile = maybe_matched_tile.unwrap().1;
-
-            if used.contains(&matched_tile) {
-                continue;
-            }
-
-            matched_tiles.push(matched_tile);
         }
 
+        //println!("matched: {:?}", matched_tiles);
         matched_tiles
             .iter()
             .filter(|matched_tile| {
@@ -277,7 +281,6 @@ impl Image<'_> {
         }
 
         //println!("{:?}", board);
-        //println!("{:?}", board);
         // Move forward a col or down a row
         let new_coords = if coords.1 == board[coords.0].len() - 1 {
             (coords.0 + 1, 0)
@@ -298,13 +301,14 @@ impl Image<'_> {
             .copied()
             .collect();
 
+        //println!("surrounding: {:?} {:?}", coords, surrounding_tiles);
         let comps = self.find_complimentary_tiles(&used, surrounding_tiles);
 
         for comp in comps {
             new_board[coords.0][coords.1] = comp;
-            used.insert(comp);
-            match self.rec_build_image(&new_board, (new_coords.0, new_coords.1), &mut used.clone())
-            {
+            let mut new_used = used.clone();
+            new_used.insert(comp);
+            match self.rec_build_image(&new_board, (new_coords.0, new_coords.1), &mut new_used) {
                 Some(board) => return Some(board),
                 None => continue,
             }
