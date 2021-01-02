@@ -204,10 +204,11 @@ struct Image<'a> {
 }
 
 impl Image<'_> {
-    fn find_complimentary_tile(&self, used: &HashSet<u64>, in_tile_no: u64) -> u64 {
+    fn find_complimentary_tiles(&self, used: &HashSet<u64>, in_tile_no: u64) -> Vec<u64> {
         let left_tile = &self.tile_map[&in_tile_no];
         let mut r = 0;
 
+        let mut matched_tiles: Vec<u64> = vec![];
         for side in left_tile.sides().0.iter() {
             let maybe_matched_tile = self.side_map[&side.1.to_string()]
                 .iter()
@@ -224,58 +225,101 @@ impl Image<'_> {
                 continue;
             }
 
-            return matched_tile;
+            matched_tiles.push(matched_tile);
         }
 
-        0
+        matched_tiles
     }
 
-    fn build_image(&self, corners: &Vec<u64>) -> Vec<Vec<u64>> {
+    fn rec_build_image(
+        &self,
+        board: &Vec<Vec<u64>>,
+        coords: (usize, usize),
+        used: &mut HashSet<u64>,
+    ) -> Option<Vec<Vec<u64>>> {
+        let mut new_board = board.clone();
+
+        // Last row
+        if coords.0 >= board.len() {
+            return Some(new_board);
+        }
+
+        //println!("{:?}", board);
+        // Move forward a col or down a row
+        let new_coords = if coords.1 == board[coords.0].len() - 1 {
+            (coords.0 + 1, 0)
+        } else {
+            (coords.0, coords.1 + 1)
+        };
+
+        // Try to update board
+        if coords.1 == 0 {
+            let above_tile_no = board[coords.0 - 1][0];
+            let comps = self.find_complimentary_tiles(&used, above_tile_no);
+
+            for comp in comps {
+                new_board[coords.0][0] = comp;
+                used.insert(comp);
+                match self.rec_build_image(
+                    &new_board,
+                    (new_coords.0, new_coords.1),
+                    &mut used.clone(),
+                ) {
+                    Some(board) => return Some(board),
+                    None => continue,
+                }
+            }
+        } else {
+            let left_tile_no = board[coords.0][coords.1 - 1];
+            let comps = self.find_complimentary_tiles(&used, left_tile_no);
+
+            for comp in comps {
+                new_board[coords.0][coords.1] = comp;
+                used.insert(comp);
+                match self.rec_build_image(
+                    &new_board,
+                    (new_coords.0, new_coords.1),
+                    &mut used.clone(),
+                ) {
+                    Some(board) => return Some(board),
+                    None => continue,
+                }
+            }
+        }
+
+        None
+    }
+
+    fn build_image(&self, corners: &Vec<u64>) -> Option<Vec<Vec<u64>>> {
         use Direction::*;
         let size = (self.tiles.len() as f64).sqrt() as usize;
         let mut board = vec![vec![0; size]; size];
 
-        let first_corner_no = &corners[0];
-        let first_corner = &self.tile_map[first_corner_no];
+        for first_corner_no in corners {
+            let first_corner = &self.tile_map[first_corner_no];
 
-        let first_side = first_corner
-            .sides()
-            .0
-            .iter()
-            .filter(|dir_side| {
-                let matches = &self.side_map[&dir_side.1.to_string()];
-                matches.len() > 1
-            })
-            .map(|side| side.1.to_string())
-            .nth(0);
+            let first_side = first_corner
+                .sides()
+                .0
+                .iter()
+                .filter(|dir_side| {
+                    let matches = &self.side_map[&dir_side.1.to_string()];
+                    matches.len() > 1
+                })
+                .map(|side| side.1.to_string())
+                .nth(0);
 
-        let mut used: HashSet<u64> = HashSet::new();
+            let mut used: HashSet<u64> = HashSet::new();
 
-        board[0][0] = *first_corner_no;
-        used.insert(*first_corner_no);
+            board[0][0] = *first_corner_no;
+            used.insert(*first_corner_no);
 
-        for row in 0..size {
-            if row != 0 {
-                let above_tile_no = board[row - 1][0];
-
-                let comp = self.find_complimentary_tile(&used, above_tile_no);
-
-                board[row][0] = comp;
-                used.insert(comp);
-            }
-            for col in 1..size {
-                let left_tile_no = board[row][col - 1];
-
-                let comp = self.find_complimentary_tile(&used, left_tile_no);
-
-                board[row][col] = comp;
-                used.insert(comp);
-
-                println!("{:?}", board)
+            match self.rec_build_image(&board.clone(), (0, 1), &mut used.clone()) {
+                Some(board) => return Some(board),
+                None => continue,
             }
         }
-
-        board
+        None
     }
 }
 
@@ -293,7 +337,7 @@ fn main() {
     let corners = find_corners(&tiles, &side_map);
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
-    println!("{:?}", corners);
+    //println!("{:?}", corners);
     //println!("{:?}", corners.iter().fold(1, |acc, corner| acc * corner));
 
     //println!("{:?}", tiles.len());
@@ -304,5 +348,5 @@ fn main() {
         tile_map: &tile_map,
     }
     .build_image(&corners);
-    println!("{:?}", result);
+    println!("{:?}", result.unwrap());
 }
