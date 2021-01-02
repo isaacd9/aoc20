@@ -298,9 +298,10 @@ fn main() {
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
     println!("{:?}", corners);
+    //println!("{:?}", corners.iter().fold(1, |acc, corner| acc * corner));
 
     //println!("{:?}", tiles.len());
 
-    //let result = build_image(&tiles, &side_map, &tile_map, &corners);
-    //println!("{:?}", result);
+    let result = build_image(&tiles, &side_map, &tile_map, &corners);
+    println!("{:?}", result);
 }
