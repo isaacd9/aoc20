@@ -6,7 +6,7 @@ use std::io::{self, BufRead, Error, Lines, Split, StdinLock};
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 enum Pixel {
     Illuminated,
     NotIlluminated,
@@ -38,13 +38,24 @@ impl fmt::Display for Pixel {
     }
 }
 
+impl fmt::Debug for Pixel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        use Pixel::*;
+
+        match &self {
+            Illuminated => write!(f, "#"),
+            NotIlluminated => write!(f, "."),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 struct Tile {
     number: u64,
     pixels: Vec<Vec<Pixel>>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Hash, Eq)]
 enum Direction {
     Top,
     Left,
@@ -72,6 +83,8 @@ impl Side {
 struct Sides(Vec<(Direction, Side)>);
 
 impl Tile {
+    fn flip(&mut self) {}
+
     fn sides(&self) -> Sides {
         use crate::Direction::*;
 
@@ -317,7 +330,7 @@ impl Image<'_> {
         None
     }
 
-    fn build_image(&self, corners: &Vec<u64>) -> Option<Vec<Vec<u64>>> {
+    fn find_ids(&self, corners: &Vec<u64>) -> Option<Vec<Vec<u64>>> {
         use Direction::*;
         let size = (self.tiles.len() as f64).sqrt() as usize;
         let mut board = vec![vec![0; size]; size];
@@ -348,6 +361,79 @@ impl Image<'_> {
         }
         None
     }
+
+    fn render(&self, ids: &Vec<Vec<u64>>) -> Vec<Vec<Pixel>> {
+        use crate::Pixel::*;
+
+        let t = &self.tile_map[&ids[0][0]];
+        let grid_size = (self.tiles.len() as f64).sqrt() as usize;
+        let size = grid_size * t.pixels.len();
+        let mut tiles = vec![vec![NotIlluminated; size]; size];
+
+        for (row_i, row) in ids.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                let surrounding_tiles: Vec<(u64, Direction)> = DIFFS
+                    .iter()
+                    .map(|d| {
+                        let direction = match d {
+                            (1, 0) => Direction::Bottom,
+                            (0, 1) => Direction::Right,
+                            (-1, 0) => Direction::Bottom,
+                            (0, -1) => Direction::Top,
+                            _ => panic!("impossible direction"),
+                        };
+                        (
+                            ids.get((d.0).wrapping_add(row_i as i64) as usize)
+                                .and_then(|a| a.get(d.1.wrapping_add(cell_i as i64) as usize)),
+                            direction,
+                        )
+                    })
+                    .filter(|a| a.0.is_some())
+                    .map(|a| (a.0.unwrap().clone(), a.1))
+                    .collect();
+
+                let sides = self.tile_map[cell].sides();
+                let comps: HashMap<_, _> = sides
+                    .0
+                    .iter()
+                    .map(|side| &self.side_map[&side.1.to_string()])
+                    .flat_map(|comps| comps.iter())
+                    .filter(|comp| {
+                        surrounding_tiles
+                            .iter()
+                            .map(|a| a.0)
+                            .position(|a| a == comp.1)
+                            .is_some()
+                    })
+                    .map(|comp| {
+                        (
+                            comp.1,
+                            self.tile_map[&comp.1]
+                                .sides()
+                                .0
+                                .iter()
+                                .filter(move |side| side.0 == comp.0)
+                                .map(|side| side.1.to_string())
+                                .collect::<Vec<String>>()[0]
+                                .clone(),
+                        )
+                    })
+                    .collect::<HashMap<_, _>>();
+
+                let sides_to_direction = surrounding_tiles
+                    .iter()
+                    .map(|item| (item.1.clone(), comps[&item.0].clone()))
+                    .collect::<HashMap<_, _>>();
+
+                println!(
+                    "{} -> {:?}: {:?} {:?}",
+                    cell, surrounding_tiles, comps, sides_to_direction
+                )
+            }
+        }
+
+        tiles
+    }
 }
 
 fn main() {
@@ -361,19 +447,28 @@ fn main() {
         .collect();
 
     let side_map = build_side_map(&tiles);
-    let corners = find_corners(&tiles, &side_map);
+    //let corners = find_corners(&tiles, &side_map);
+    let corners = vec![1951, 3079, 2971, 1171];
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
     println!("{:?}", corners);
-    println!("{:?}", corners.iter().fold(1, |acc, corner| acc * corner));
+    //println!("{:?}", corners.iter().fold(1, |acc, corner| acc * corner));
 
     //println!("{:?}", tiles.len());
 
-    let result = Image {
+    let img = Image {
         tiles: &tiles,
         side_map: &side_map,
         tile_map: &tile_map,
+    };
+    let ids = img.find_ids(&corners);
+    for row in &ids {
+        for cell in row {
+            println!("{:?}", cell);
+        }
     }
-    .build_image(&corners);
-    println!("{:?}", result.unwrap());
+    let result = img.render(&ids.unwrap());
+    for row in result {
+        println!("{:?}", row);
+    }
 }
