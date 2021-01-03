@@ -194,6 +194,30 @@ impl Tile {
         std::mem::swap(&mut self.pixels, &mut dupe);
     }
 
+    fn h_flip(&mut self) {
+        let mut dupe = self.pixels.clone();
+
+        for (row_i, row) in self.pixels.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                dupe[row_i][row.len() - cell_i - 1] = cell.clone()
+            }
+        }
+
+        std::mem::swap(&mut self.pixels, &mut dupe);
+    }
+
+    fn v_flip(&mut self) {
+        let mut dupe = self.pixels.clone();
+
+        for (row_i, row) in self.pixels.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                dupe[row.len() - row_i - 1][cell_i] = cell.clone()
+            }
+        }
+
+        std::mem::swap(&mut self.pixels, &mut dupe);
+    }
+
     fn sides(&self) -> Sides {
         use crate::Direction::*;
 
@@ -593,8 +617,18 @@ impl Image<'_> {
                 println!("{} {:?} {:?}", cell, side_transforms, t,);
 
                 let mut tile = self.tile_map[cell].clone();
-                println!("{}", tile);
-                tile.rotate();
+                for _ in 0..t.rotations {
+                    tile.rotate()
+                }
+
+                if t.h_flip {
+                    tile.h_flip();
+                }
+
+                if t.v_flip {
+                    tile.v_flip();
+                }
+
                 println!("\n{}", tile);
             }
         }
