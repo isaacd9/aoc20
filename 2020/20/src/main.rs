@@ -63,6 +63,105 @@ enum Direction {
     Right,
 }
 
+impl Direction {
+    fn compute_rotation(&self, other: &Direction) -> u64 {
+        use Direction::*;
+
+        match (&self, other) {
+            (Top, Top) => 0,
+            (Top, Right) => 1,
+            (Top, Bottom) => 2,
+            (Top, Left) => 3,
+
+            (Right, Right) => 0,
+            (Right, Bottom) => 1,
+            (Right, Left) => 2,
+            (Right, Top) => 3,
+
+            (Bottom, Bottom) => 0,
+            (Bottom, Left) => 1,
+            (Bottom, Top) => 2,
+            (Bottom, Right) => 3,
+
+            (Left, Left) => 0,
+            (Left, Top) => 1,
+            (Left, Right) => 2,
+            (Left, Bottom) => 3,
+        }
+    }
+
+    fn rotate(&self, d: u64) -> Direction {
+        use Direction::*;
+        let dd = d % 4;
+
+        match (&self, dd) {
+            (Top, 0) => Top,
+            (Top, 1) => Right,
+            (Top, 2) => Bottom,
+            (Top, 3) => Left,
+
+            (Right, 0) => Right,
+            (Right, 1) => Bottom,
+            (Right, 2) => Left,
+            (Right, 3) => Top,
+
+            (Bottom, 0) => Bottom,
+            (Bottom, 1) => Left,
+            (Bottom, 2) => Top,
+            (Bottom, 3) => Right,
+
+            (Left, 0) => Left,
+            (Left, 1) => Top,
+            (Left, 2) => Right,
+            (Left, 3) => Bottom,
+
+            _ => panic!("impossible transform: {:?}", (&self, dd)),
+        }
+    }
+
+    fn compute_h_flip(&self, other: &Direction) -> bool {
+        use Direction::*;
+
+        match (&self, other) {
+            (Top, Bottom) => true,
+            (Bottom, Top) => true,
+            _ => false,
+        }
+    }
+
+    fn h_flip(&self) -> Direction {
+        use Direction::*;
+
+        match &self {
+            Top => Top,
+            Bottom => Bottom,
+            Right => Left,
+            Left => Right,
+        }
+    }
+
+    fn compute_v_flip(&self, other: &Direction) -> bool {
+        use Direction::*;
+
+        match (&self, other) {
+            (Left, Right) => true,
+            (Right, Left) => true,
+            _ => false,
+        }
+    }
+
+    fn v_flip(&self) -> Direction {
+        use Direction::*;
+
+        match &self {
+            Top => Bottom,
+            Bottom => Top,
+            Right => Right,
+            Left => Left,
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Clone)]
 struct Side(Vec<Pixel>);
 
@@ -216,6 +315,13 @@ struct Image<'a> {
     tile_map: &'a HashMap<u64, Tile>,
 }
 
+#[derive(Debug, PartialEq, Clone)]
+struct Transformation {
+    rotations: u64,
+    h_flip: bool,
+    v_flip: bool,
+}
+
 static DIFFS: &'static [(i64, i64)] = &[(1, 0), (0, 1), (-1, 0), (0, -1)];
 
 impl Image<'_> {
@@ -362,6 +468,35 @@ impl Image<'_> {
         None
     }
 
+    fn transformations(&self, mappings: &HashMap<Direction, Direction>) -> Transformation {
+        let mut rotation = 0;
+        for mapping in mappings.iter() {
+            rotation = mapping.0.compute_rotation(mapping.1);
+        }
+
+        let mut vflip = false;
+        let mut hflip = false;
+        for mapping in mappings.iter() {
+            let rotated = mapping.0.rotate(rotation);
+
+            if &rotated != mapping.1 {
+                if rotated.compute_v_flip(mapping.1) {
+                    vflip = true
+                } else if rotated.compute_h_flip(mapping.1) {
+                    hflip = true
+                } else {
+                    panic!("unsatisifable rotation")
+                }
+            }
+        }
+
+        Transformation {
+            rotations: rotation,
+            v_flip: vflip,
+            h_flip: hflip,
+        }
+    }
+
     fn render(&self, ids: &Vec<Vec<u64>>) -> Vec<Vec<Pixel>> {
         use crate::Pixel::*;
 
@@ -439,11 +574,13 @@ impl Image<'_> {
                     .collect::<HashMap<String, Direction>>();
 
                 //println!("{} {:?} {:?}", cell, sides_to_direction, current_sides,);
-                let transformations = sides_to_direction
+                let side_transforms = sides_to_direction
                     .iter()
                     .map(|(direction, side)| (current_sides[side].clone(), direction.clone()))
                     .collect::<HashMap<Direction, Direction>>();
-                println!("{} {:?}", cell, transformations,);
+
+                let t = self.transformations(&side_transforms);
+                println!("{} {:?} {:?}", cell, side_transforms, t,);
             }
         }
 
@@ -462,8 +599,8 @@ fn main() {
         .collect();
 
     let side_map = build_side_map(&tiles);
-    //let corners = find_corners(&tiles, &side_map);
-    let corners = vec![1951, 3079, 2971, 1171];
+    let corners = find_corners(&tiles, &side_map);
+    //let corners = vec![1951, 3079, 2971, 1171];
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
     println!("{:?}", corners);
