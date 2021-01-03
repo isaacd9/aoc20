@@ -378,8 +378,8 @@ impl Image<'_> {
                         let direction = match d {
                             (1, 0) => Direction::Bottom,
                             (0, 1) => Direction::Right,
-                            (-1, 0) => Direction::Bottom,
-                            (0, -1) => Direction::Top,
+                            (-1, 0) => Direction::Top,
+                            (0, -1) => Direction::Left,
                             _ => panic!("impossible direction"),
                         };
                         (
@@ -426,7 +426,8 @@ impl Image<'_> {
                     .collect::<HashMap<_, _>>();
 
                 println!(
-                    "{:?} {:?}",
+                    "{} {:?} {:?}",
+                    cell,
                     sides_to_direction,
                     sides
                         .0
