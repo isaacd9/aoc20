@@ -187,7 +187,7 @@ impl Tile {
 
         for (row_i, row) in self.pixels.iter().enumerate() {
             for (cell_i, cell) in row.iter().enumerate() {
-                dupe[row.len() - cell_i - 1][row.len() - row_i - 1] = cell.clone()
+                dupe[cell_i][row.len() - row_i - 1] = cell.clone()
             }
         }
 
