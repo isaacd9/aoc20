@@ -182,7 +182,17 @@ impl Side {
 struct Sides(Vec<(Direction, Side)>);
 
 impl Tile {
-    fn flip(&mut self) {}
+    fn rotate(&mut self) {
+        let mut dupe = self.pixels.clone();
+
+        for (row_i, row) in self.pixels.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                dupe[row.len() - cell_i - 1][row.len() - row_i - 1] = cell.clone()
+            }
+        }
+
+        std::mem::swap(&mut self.pixels, &mut dupe);
+    }
 
     fn sides(&self) -> Sides {
         use crate::Direction::*;
@@ -581,6 +591,11 @@ impl Image<'_> {
 
                 let t = self.transformations(&side_transforms);
                 println!("{} {:?} {:?}", cell, side_transforms, t,);
+
+                let mut tile = self.tile_map[cell].clone();
+                println!("{}", tile);
+                tile.rotate();
+                println!("\n{}", tile);
             }
         }
 
