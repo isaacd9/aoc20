@@ -426,8 +426,13 @@ impl Image<'_> {
                     .collect::<HashMap<_, _>>();
 
                 println!(
-                    "{} -> {:?}: {:?} {:?}",
-                    cell, surrounding_tiles, comps, sides_to_direction
+                    "{:?} {:?}",
+                    sides_to_direction,
+                    sides
+                        .0
+                        .iter()
+                        .map(|(direction, side)| (direction.clone(), side.to_string()))
+                        .collect::<Vec<(Direction, String)>>()
                 )
             }
         }
