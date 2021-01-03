@@ -425,16 +425,25 @@ impl Image<'_> {
                     .map(|item| (item.1.clone(), comps[&item.0].clone()))
                     .collect::<HashMap<_, _>>();
 
-                println!(
-                    "{} {:?} {:?}",
-                    cell,
-                    sides_to_direction,
-                    sides
-                        .0
-                        .iter()
-                        .map(|(direction, side)| (direction.clone(), side.to_string()))
-                        .collect::<Vec<(Direction, String)>>()
-                )
+                let current_sides = sides
+                    .0
+                    .iter()
+                    .flat_map(|(direction, side)| {
+                        std::iter::once((side.to_string(), direction.clone())).chain(
+                            std::iter::once((
+                                side.to_string().chars().rev().collect(),
+                                direction.clone(),
+                            )),
+                        )
+                    })
+                    .collect::<HashMap<String, Direction>>();
+
+                //println!("{} {:?} {:?}", cell, sides_to_direction, current_sides,);
+                let transformations = sides_to_direction
+                    .iter()
+                    .map(|(direction, side)| (current_sides[side].clone(), direction.clone()))
+                    .collect::<HashMap<Direction, Direction>>();
+                println!("{} {:?}", cell, transformations,);
             }
         }
 
