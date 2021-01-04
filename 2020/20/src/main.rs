@@ -123,6 +123,16 @@ impl Direction {
         use Direction::*;
 
         match (&self, other) {
+            (Left, Right) => true,
+            (Right, Left) => true,
+            _ => false,
+        }
+    }
+
+    fn compute_v_flip(&self, other: &Direction) -> bool {
+        use Direction::*;
+
+        match (&self, other) {
             (Top, Bottom) => true,
             (Bottom, Top) => true,
             _ => false,
@@ -137,16 +147,6 @@ impl Direction {
             Bottom => Bottom,
             Right => Left,
             Left => Right,
-        }
-    }
-
-    fn compute_v_flip(&self, other: &Direction) -> bool {
-        use Direction::*;
-
-        match (&self, other) {
-            (Left, Right) => true,
-            (Right, Left) => true,
-            _ => false,
         }
     }
 
@@ -707,7 +707,7 @@ fn main() {
 
     let side_map = build_side_map(&tiles);
     let corners = find_corners(&tiles, &side_map);
-    let corners = vec![1951, 3079, 2971, 1171];
+    //let corners = vec![1951, 3079, 2971, 1171];
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
     //println!("{:?}", corners);
