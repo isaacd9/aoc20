@@ -731,7 +731,43 @@ impl fmt::Display for SeaMonster {
 }
 
 impl Habitat {
-    fn find(&mut self, target: SeaMonster) -> u64 {
+    fn rotate(&mut self) {
+        let mut dupe = self.0.clone();
+
+        for (row_i, row) in self.0.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                dupe[cell_i][row.len() - row_i - 1] = cell.clone()
+            }
+        }
+
+        std::mem::swap(&mut self.0, &mut dupe);
+    }
+
+    fn h_flip(&mut self) {
+        let mut dupe = self.0.clone();
+
+        for (row_i, row) in self.0.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                dupe[row_i][row.len() - cell_i - 1] = cell.clone()
+            }
+        }
+
+        std::mem::swap(&mut self.0, &mut dupe);
+    }
+
+    fn v_flip(&mut self) {
+        let mut dupe = self.0.clone();
+
+        for (row_i, row) in self.0.iter().enumerate() {
+            for (cell_i, cell) in row.iter().enumerate() {
+                dupe[row.len() - row_i - 1][cell_i] = cell.clone()
+            }
+        }
+
+        std::mem::swap(&mut self.0, &mut dupe);
+    }
+
+    fn find(&mut self, target: &SeaMonster) -> u64 {
         use Pixel::*;
 
         let mut found_sea_monsters = 0;
@@ -857,8 +893,8 @@ fn main() {
         .collect();
 
     let side_map = build_side_map(&tiles);
-    //let corners = find_corners(&tiles, &side_map);
-    let corners = vec![1951, 3079, 2971, 1171];
+    let corners = find_corners(&tiles, &side_map);
+    //let corners = vec![1951, 3079, 2971, 1171];
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
     //println!("{:?}", corners);
@@ -886,7 +922,22 @@ fn main() {
     //println!("{}", sea_monster);
     let result = img.render(&ids.unwrap());
     let mut habitat = result.into_habitat();
+
+    let mut found_sea_monsters = 0;
+
+    while found_sea_monsters == 0 {
+        habitat.rotate();
+        found_sea_monsters = habitat.find(&sea_monster);
+    }
     //println!("{}", habitat);
-    println!("{}", habitat.find(sea_monster));
-    //println!("{}", habitat);
+    println!("{}", habitat);
+    println!("{}", found_sea_monsters);
+    println!(
+        "{}",
+        habitat.0.iter().fold(0, |acc, row| acc
+            + row.iter().fold(0, |acc, cell| match cell {
+                Pixel::Illuminated => acc + 1,
+                _ => acc,
+            }))
+    );
 }
