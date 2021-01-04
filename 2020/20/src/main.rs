@@ -49,7 +49,7 @@ impl fmt::Debug for Pixel {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 struct Tile {
     number: u64,
     pixels: Vec<Vec<Pixel>>,
@@ -531,13 +531,12 @@ impl Image<'_> {
         }
     }
 
-    fn render(&self, ids: &Vec<Vec<u64>>) -> Vec<Vec<Pixel>> {
+    fn render(&self, ids: &Vec<Vec<u64>>) -> Rendered {
         use crate::Pixel::*;
 
         let t = &self.tile_map[&ids[0][0]];
         let grid_size = (self.tiles.len() as f64).sqrt() as usize;
-        let size = grid_size * t.pixels.len();
-        let mut tiles = vec![vec![NotIlluminated; size]; size];
+        let mut tiles = vec![vec![Tile::default(); grid_size]; grid_size];
 
         for (row_i, row) in ids.iter().enumerate() {
             for (cell_i, cell) in row.iter().enumerate() {
@@ -614,7 +613,7 @@ impl Image<'_> {
                     .collect::<HashMap<Direction, Direction>>();
 
                 let t = self.transformations(&side_transforms);
-                println!("{} {:?} {:?}", cell, side_transforms, t,);
+                //println!("{} {:?} {:?}", cell, side_transforms, t,);
 
                 let mut tile = self.tile_map[cell].clone();
                 for _ in 0..t.rotations {
@@ -629,11 +628,70 @@ impl Image<'_> {
                     tile.v_flip();
                 }
 
-                println!("\n{}", tile);
+                tiles[row_i][cell_i] = tile;
             }
         }
 
-        tiles
+        Rendered(tiles)
+    }
+}
+
+struct Rendered(Vec<Vec<Tile>>);
+
+impl Rendered {
+    fn into_pixels(&self) -> Vec<Vec<Pixel>> {
+        let mut pixels: Vec<Vec<Pixel>> = vec![];
+        for tile_row in &self.0 {
+            let first_tile = &tile_row[0];
+
+            for pixel_row_i in 0..first_tile.pixels.len() {
+                let mut result_row: Vec<Pixel> = vec![];
+                for tile in tile_row {
+                    let pixel_row = &tile.pixels[pixel_row_i];
+
+                    for pixel in pixel_row {
+                        result_row.push(pixel.clone());
+                    }
+                }
+
+                pixels.push(result_row);
+            }
+        }
+        pixels
+    }
+}
+
+impl fmt::Display for Rendered {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pixels = self.into_pixels();
+
+        let st: String = pixels
+            .iter()
+            .enumerate()
+            .map(|(row_i, row)| {
+                let r = row
+                    .iter()
+                    .enumerate()
+                    .map(|(cell_i, cell)| {
+                        if cell_i % 10 == 0 && cell_i != 0 {
+                            format!(" {}", cell)
+                        } else {
+                            format!("{}", cell)
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join("");
+
+                if row_i % 10 == 0 && row_i != 0 {
+                    format!("\n{}", r)
+                } else {
+                    r
+                }
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        write!(f, "{}", st)
     }
 }
 
@@ -649,10 +707,10 @@ fn main() {
 
     let side_map = build_side_map(&tiles);
     let corners = find_corners(&tiles, &side_map);
-    //let corners = vec![1951, 3079, 2971, 1171];
+    let corners = vec![1951, 3079, 2971, 1171];
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
-    println!("{:?}", corners);
+    //println!("{:?}", corners);
     //println!("{:?}", corners.iter().fold(1, |acc, corner| acc * corner));
 
     //println!("{:?}", tiles.len());
@@ -669,7 +727,5 @@ fn main() {
         }
     }
     let result = img.render(&ids.unwrap());
-    for row in result {
-        println!("{:?}", row);
-    }
+    println!("{}", result);
 }
