@@ -637,6 +637,7 @@ impl Image<'_> {
 }
 
 struct Rendered(Vec<Vec<Tile>>);
+struct Habitat(Vec<Vec<Pixel>>);
 
 impl Rendered {
     fn into_pixels(&self) -> Vec<Vec<Pixel>> {
@@ -658,6 +659,35 @@ impl Rendered {
             }
         }
         pixels
+    }
+
+    fn into_habitat(&self) -> Habitat {
+        let mut pixels: Vec<Vec<Pixel>> = vec![];
+        for tile_row in &self.0 {
+            let first_tile = &tile_row[0];
+
+            for pixel_row_i in 0..first_tile.pixels.len() {
+                let mut result_row: Vec<Pixel> = vec![];
+                for tile in tile_row {
+                    let pixel_row = &tile.pixels[pixel_row_i];
+
+                    for (pixel_col_i, pixel) in pixel_row.iter().enumerate() {
+                        if pixel_col_i != 0
+                            && pixel_col_i != pixel_row.len() - 1
+                            && pixel_row_i != 0
+                            && pixel_row_i != pixel_row.len() - 1
+                        {
+                            result_row.push(pixel.clone());
+                        }
+                    }
+                }
+
+                if result_row.len() > 0 {
+                    pixels.push(result_row);
+                }
+            }
+        }
+        Habitat(pixels)
     }
 }
 
@@ -683,6 +713,40 @@ impl fmt::Display for Rendered {
                     .join("");
 
                 if row_i % 10 == 0 && row_i != 0 {
+                    format!("\n{}", r)
+                } else {
+                    r
+                }
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        write!(f, "{}", st)
+    }
+}
+
+impl fmt::Display for Habitat {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let pixels = &self.0;
+
+        let st: String = pixels
+            .iter()
+            .enumerate()
+            .map(|(row_i, row)| {
+                let r = row
+                    .iter()
+                    .enumerate()
+                    .map(|(cell_i, cell)| {
+                        if cell_i % 8 == 0 && cell_i != 0 {
+                            format!(" {}", cell)
+                        } else {
+                            format!("{}", cell)
+                        }
+                    })
+                    .collect::<Vec<String>>()
+                    .join("");
+
+                if row_i % 8 == 0 && row_i != 0 {
                     format!("\n{}", r)
                 } else {
                     r
@@ -727,5 +791,5 @@ fn main() {
         }
     }
     let result = img.render(&ids.unwrap());
-    println!("{}", result);
+    println!("{}", result.into_habitat());
 }
