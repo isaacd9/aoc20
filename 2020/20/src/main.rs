@@ -10,6 +10,7 @@ use std::str::FromStr;
 enum Pixel {
     Illuminated,
     NotIlluminated,
+    Monster,
 }
 
 impl FromStr for Pixel {
@@ -34,6 +35,7 @@ impl fmt::Display for Pixel {
         match &self {
             Illuminated => write!(f, "#"),
             NotIlluminated => write!(f, "."),
+            Monster => write!(f, "O"),
         }
     }
 }
@@ -45,6 +47,7 @@ impl fmt::Debug for Pixel {
         match &self {
             Illuminated => write!(f, "#"),
             NotIlluminated => write!(f, "."),
+            Monster => write!(f, "O"),
         }
     }
 }
@@ -172,6 +175,7 @@ impl Side {
             .map(|p| match p {
                 Pixel::Illuminated => "1",
                 Pixel::NotIlluminated => "0",
+                _ => panic!("found monster"),
             })
             .collect::<Vec<&str>>()
             .concat()
@@ -727,8 +731,50 @@ impl fmt::Display for SeaMonster {
 }
 
 impl Habitat {
-    fn find(&self, target: SeaMonster) -> u64 {
-        0
+    fn find(&mut self, target: SeaMonster) -> u64 {
+        use Pixel::*;
+
+        let mut found_sea_monsters = 0;
+        for row_i in 0..self.0.len() {
+            for col_i in 0..self.0[0].len() {
+                let mut found_sea_monster = true;
+
+                for (sea_monster_row_i, row) in target.0.iter().enumerate() {
+                    for (sea_monster_col_i, sea_monster_cell) in row.iter().enumerate() {
+                        let cell = self
+                            .0
+                            .get(row_i + sea_monster_row_i)
+                            .and_then(|row| row.get(col_i + sea_monster_col_i))
+                            .unwrap_or(&NotIlluminated);
+
+                        found_sea_monster &= match (sea_monster_cell, cell) {
+                            (Illuminated, Illuminated) => true,
+                            (Illuminated, _) => false,
+                            (_, _) => true,
+                        };
+                    }
+                }
+
+                if found_sea_monster {
+                    found_sea_monsters += 1;
+                    for (sea_monster_row_i, row) in target.0.iter().enumerate() {
+                        for (sea_monster_col_i, sea_monster_cell) in row.iter().enumerate() {
+                            let cell = self
+                                .0
+                                .get_mut(row_i + sea_monster_row_i)
+                                .and_then(|row| row.get_mut(col_i + sea_monster_col_i))
+                                .unwrap();
+
+                            *cell = match sea_monster_cell {
+                                Illuminated => Monster,
+                                _ => *cell,
+                            };
+                        }
+                    }
+                }
+            }
+        }
+        found_sea_monsters
     }
 }
 
@@ -811,8 +857,8 @@ fn main() {
         .collect();
 
     let side_map = build_side_map(&tiles);
-    let corners = find_corners(&tiles, &side_map);
-    //let corners = vec![1951, 3079, 2971, 1171];
+    //let corners = find_corners(&tiles, &side_map);
+    let corners = vec![1951, 3079, 2971, 1171];
 
     //println!("{:?}", m.values().map(|v| v.len() 1).collect::<Vec<_>>());
     //println!("{:?}", corners);
@@ -837,7 +883,10 @@ fn main() {
         "#    ##    ##    ###",
         " #  #  #  #  #  #",
     ]);
-    println!("{}", sea_monster);
+    //println!("{}", sea_monster);
     let result = img.render(&ids.unwrap());
-    println!("{}", result.into_habitat());
+    let mut habitat = result.into_habitat();
+    //println!("{}", habitat);
+    println!("{}", habitat.find(sea_monster));
+    //println!("{}", habitat);
 }
