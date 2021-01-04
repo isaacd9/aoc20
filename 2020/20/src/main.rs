@@ -925,8 +925,16 @@ fn main() {
 
     let mut found_sea_monsters = 0;
 
+    let mut rotations = 0;
     while found_sea_monsters == 0 {
-        habitat.rotate();
+        if rotations % 4 == 0 && rotations != 0 {
+            habitat.h_flip();
+        } else if rotations % 7 == 0 && rotations != 0 {
+            habitat.v_flip();
+        } else {
+            habitat.rotate();
+        }
+        rotations += 1;
         found_sea_monsters = habitat.find(&sea_monster);
     }
     //println!("{}", habitat);
