@@ -6,7 +6,7 @@ use std::io::{self, BufRead, Error, Lines, Split, StdinLock};
 use std::ops::RangeInclusive;
 use std::str::FromStr;
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Copy, Clone)]
 enum Pixel {
     Illuminated,
     NotIlluminated,
@@ -691,6 +691,47 @@ impl Rendered {
     }
 }
 
+struct SeaMonster([[Pixel; 20]; 3]);
+
+impl SeaMonster {
+    fn from_lines(st: &[&str]) -> SeaMonster {
+        let mut ret = [[Pixel::NotIlluminated; 20]; 3];
+
+        for (row_i, row) in st.iter().enumerate() {
+            for (col_i, c) in row.chars().enumerate() {
+                ret[row_i][col_i] =
+                    Pixel::from_str(c.to_string().as_str()).unwrap_or(Pixel::NotIlluminated)
+            }
+        }
+
+        SeaMonster(ret)
+    }
+}
+
+impl fmt::Display for SeaMonster {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let st = self
+            .0
+            .iter()
+            .map(|row| {
+                row.iter()
+                    .map(|pixel| format!("{}", pixel))
+                    .collect::<Vec<String>>()
+                    .join("")
+            })
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        write!(f, "{}", st)
+    }
+}
+
+impl Habitat {
+    fn find(&self, target: SeaMonster) -> u64 {
+        0
+    }
+}
+
 impl fmt::Display for Rendered {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let pixels = self.into_pixels();
@@ -790,6 +831,13 @@ fn main() {
             println!("{:?}", cell);
         }
     }
+
+    let sea_monster = SeaMonster::from_lines(&vec![
+        "                  #",
+        "#    ##    ##    ###",
+        " #  #  #  #  #  #",
+    ]);
+    println!("{}", sea_monster);
     let result = img.render(&ids.unwrap());
     println!("{}", result.into_habitat());
 }
