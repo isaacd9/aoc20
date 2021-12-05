@@ -2,6 +2,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::io::{self, BufRead};
 
+#[derive(Clone)]
 struct Board {
     nums: Vec<Vec<u32>>,
     marked: HashSet<(usize, usize)>,
@@ -44,7 +45,7 @@ impl Board {
             }
 
             if complete {
-                println!("winning row {}", r);
+                //println!("winning row {}", r);
                 return true;
             }
         }
@@ -56,7 +57,7 @@ impl Board {
             }
 
             if complete {
-                println!("winning col {}", c);
+                //println!("winning col {}", c);
                 return true;
             }
         }
@@ -77,12 +78,33 @@ impl Board {
     }
 }
 
-fn find_winner(numbers: &Vec<u32>, boards: &mut Vec<Board>) -> Option<(u32, usize)> {
+fn find_first_winner(numbers: &Vec<u32>, boards: &mut Vec<Board>) -> Option<(u32, usize)> {
     for marked in numbers {
         println!("m: {}", marked);
         for (board_n, board) in boards.iter_mut().enumerate() {
             board.mark(*marked);
             if board.check_win() {
+                return Some((*marked, board_n));
+            }
+        }
+    }
+
+    None
+}
+
+fn find_last_winner(numbers: &Vec<u32>, boards: &mut Vec<Board>) -> Option<(u32, usize)> {
+    let len = boards.len();
+    let mut won_boards: HashSet<usize> = HashSet::new();
+    for marked in numbers {
+        println!("m: {}", marked);
+        for (board_n, board) in boards.iter_mut().enumerate() {
+            board.mark(*marked);
+            if board.check_win() {
+                //println!("board {} won!", board_n);
+                won_boards.insert(board_n);
+            }
+
+            if won_boards.len() == len {
                 return Some((*marked, board_n));
             }
         }
@@ -126,18 +148,27 @@ fn main() -> Result<(), io::Error> {
         }
     }
 
-    println!("Hello, world!");
-    println!("{:?}", numbers);
-    println!("{:?}", boards);
-
-    let (m, w) = find_winner(&numbers, &mut boards).unwrap();
-
+    // Part 1
+    let mut boards_one = boards.clone();
+    let (m, w) = find_first_winner(&numbers, &mut boards_one).unwrap();
     println!(
         "Winner on {} was board {}. Sum unmarked: {}. Solution {}",
         m,
         w,
-        boards[w].sum_unmarked(),
-        m * boards[w].sum_unmarked(),
+        boards_one[w].sum_unmarked(),
+        m * boards_one[w].sum_unmarked(),
     );
+
+    // Part 2
+    let mut boards_two = boards.clone();
+    let (m, w) = find_last_winner(&numbers, &mut boards_two).unwrap();
+    println!(
+        "Winner on {} was board {}. Sum unmarked: {}. Solution {}",
+        m,
+        w,
+        boards_two[w].sum_unmarked(),
+        m * boards_two[w].sum_unmarked(),
+    );
+
     Ok(())
 }
