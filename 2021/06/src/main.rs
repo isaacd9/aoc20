@@ -30,7 +30,7 @@ fn main() {
             }
         }
         m = new_m;
-        println!("After {} day: {:?}", d, m);
+        //println!("After {} day: {:?}", d, m);
     }
 
     println!("{}", m.into_iter().sum::<i64>());
