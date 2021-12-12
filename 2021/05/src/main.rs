@@ -1,4 +1,5 @@
 use std::io::{self, BufRead};
+use std::num;
 
 #[derive(Debug)]
 struct LineSegment {
@@ -9,26 +10,40 @@ struct LineSegment {
 #[derive(Debug)]
 struct Board(Vec<Vec<usize>>);
 
+fn normalize(n: f64) -> i32 {
+    if n < 0.0 {
+        return -1;
+    } else if n > 0.0 {
+        return 1;
+    } else if n == 0.0 {
+        return 0;
+    };
+    panic!("impossible")
+}
+
 impl Board {
     fn plot(&mut self, s: &LineSegment) {
         //println!("plotting: {:?}", s);
-        let x_range = if s.dest.0 < s.source.0 {
-            s.dest.0..=s.source.0
-        } else {
-            s.source.0..=s.dest.0
-        };
 
-        let y_range = if s.dest.1 < s.source.1 {
-            s.dest.1..=s.source.1
-        } else {
-            s.source.1..=s.dest.1
-        };
+        let a = s.dest.0 as i32 - s.source.0 as i32;
+        let b = s.dest.1 as i32 - s.source.1 as i32;
 
-        for x in x_range {
-            for y in y_range.clone() {
-                //println!("plotting: ({}, {})", x, y);
-                self.0[x][y] += 1
-            }
+        let magnitude = f64::abs(f64::sqrt(i32::pow(a, 2) as f64 + i32::pow(b, 2) as f64));
+        //println!("{}", magnitude);
+        let normal_a = normalize(a as f64 / magnitude);
+        let normal_b = normalize(b as f64 / magnitude);
+
+        //println!("{} {}", normal_a, normal_b);
+
+        let mut pt = s.source;
+        self.0[s.source.0][s.source.1] += 1;
+        while pt != s.dest {
+            pt = (
+                (pt.0 as i32 + normal_a) as usize,
+                (pt.1 as i32 + normal_b) as usize,
+            );
+            self.0[pt.0][pt.1] += 1;
+            //println!("{:?}", pt);
         }
     }
 }
@@ -54,24 +69,57 @@ fn main() {
         })
         .collect();
 
-    let mut board = Board(vec![vec![0; 1000]; 1000]);
+    let mut board_one = Board(vec![vec![0; 1000]; 1000]);
 
     for seg in line_segments
         .iter()
         .filter(|seg| seg.source.0 == seg.dest.0 || seg.source.1 == seg.dest.1)
     {
-        board.plot(seg)
+        board_one.plot(seg)
     }
 
-    let mut sum = 0;
-    for row in board.0 {
+    // Part 1
+    let mut one_sum = 0;
+    for row in board_one.0 {
         //println!("{:?}", row);
         for col in row {
             if col > 1 {
-                sum += 1
+                one_sum += 1
             }
         }
     }
 
-    println!("{:?}", sum);
+    println!("one_sum: {:?}", one_sum);
+
+    // Part 2
+    let mut board_two = Board(vec![vec![0; 1000]; 1000]);
+    for seg in line_segments.iter().filter(|seg| {
+        //println!(
+        //    "{:?} {} {} {}",
+        //    seg,
+        //    i32::abs(seg.dest.0 as i32 - seg.source.0 as i32),
+        //    i32::abs(seg.dest.1 as i32 - seg.source.1 as i32),
+        //    i32::abs(seg.dest.0 as i32 - seg.source.0 as i32)
+        //        == i32::abs(seg.dest.1 as i32 - seg.source.1 as i32)
+        //);
+
+        seg.source.0 == seg.dest.0
+            || seg.source.1 == seg.dest.1
+            || i32::abs(seg.dest.0 as i32 - seg.source.0 as i32)
+                == i32::abs(seg.dest.1 as i32 - seg.source.1 as i32)
+    }) {
+        board_two.plot(seg)
+    }
+
+    let mut two_sum = 0;
+    for row in board_two.0 {
+        //println!("{:?}", row);
+        for col in row {
+            if col > 1 {
+                two_sum += 1
+            }
+        }
+    }
+
+    println!("two_sum: {:?}", two_sum);
 }
