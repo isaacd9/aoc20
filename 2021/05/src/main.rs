@@ -11,7 +11,7 @@ struct Board(Vec<Vec<usize>>);
 
 impl Board {
     fn plot(&mut self, s: &LineSegment) {
-        println!("plotting: {:?}", s);
+        //println!("plotting: {:?}", s);
         let x_range = if s.dest.0 < s.source.0 {
             s.dest.0..=s.source.0
         } else {
@@ -26,7 +26,7 @@ impl Board {
 
         for x in x_range {
             for y in y_range.clone() {
-                println!("plotting: ({}, {})", x, y);
+                //println!("plotting: ({}, {})", x, y);
                 self.0[x][y] += 1
             }
         }
