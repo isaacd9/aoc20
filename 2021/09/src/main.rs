@@ -34,6 +34,52 @@ impl Heatmap {
 
         low_points
     }
+
+    fn find_basin_size(&self, point: &(usize, usize)) -> usize {
+        let mut q = vec![point.clone()];
+
+        let mut in_basin: HashSet<(usize, usize)> = HashSet::new();
+        in_basin.insert(point.clone());
+
+        while q.len() > 0 {
+            let pt = q.pop().unwrap();
+
+            for tup in [(0, -1), (-1, 0), (1, 0), (0, 1)] {
+                let bounder = self
+                    .0
+                    .get((pt.0 as i32 + tup.0) as usize)
+                    .and_then(|row| row.get((pt.1 as i32 + tup.1) as usize));
+
+                match bounder {
+                    Some(v) => {
+                        // 9s are special
+                        if *v == 9 {
+                            continue;
+                        };
+
+                        if *v > self.0[pt.0][pt.1] {
+                            //println!(
+                            //    "adding to basin bounder: {:?}. this: {:?}",
+                            //    bounder, self.0[pt.0][pt.1]
+                            //);
+
+                            in_basin.insert((
+                                (pt.0 as i32 + tup.0) as usize,
+                                (pt.1 as i32 + tup.1) as usize,
+                            ));
+                            q.push((
+                                (pt.0 as i32 + tup.0) as usize,
+                                (pt.1 as i32 + tup.1) as usize,
+                            ))
+                        }
+                    }
+                    None => (),
+                }
+            }
+        }
+
+        in_basin.len()
+    }
 }
 
 impl fmt::Display for Heatmap {
@@ -57,9 +103,22 @@ fn main() {
     let heatmap = Heatmap(v);
 
     let lp = heatmap.find_low_points();
-    println!("{:?}", lp);
+    //println!("{:?}", lp);
     println!("{:?}", lp.len());
 
+    // Part 1
     let s: u32 = lp.iter().map(|p| heatmap.0[p.0][p.1] + 1).sum();
-    println!("{:?}", s);
+    //println!("{:?}", s);
+
+    let mut basins: Vec<usize> = lp.iter().map(|pt| heatmap.find_basin_size(pt)).collect();
+    basins.sort_by(|a, b| b.cmp(a));
+
+    //println!("basins: {:?}", basins);
+    println!(
+        "{}*{}*{}={}",
+        basins[0],
+        basins[1],
+        basins[2],
+        basins[0] * basins[1] * basins[2],
+    );
 }
