@@ -96,14 +96,32 @@ fn main() {
         .collect();
 
     let mut o = Octopi(v);
+    let mut part_one_o = o.clone();
     let mut sum = 0;
 
     for i in 0..100 {
-        let (new_o, f) = o.iterate();
+        let (new_o, f) = part_one_o.iterate();
         sum += f.len();
-        o = new_o;
+        part_one_o = new_o;
     }
 
+    // Part 1
     println!("{}", o);
     println!("{}", sum);
+
+    // Part 2
+    let mut part_two_o = o.clone();
+    let mut first_where_all_flash = None;
+
+    for i in 0..10000 {
+        let (new_o, f) = part_two_o.iterate();
+        sum += f.len();
+        part_two_o = new_o;
+
+        //println!("{}", f.len());
+        if first_where_all_flash.is_none() && f.len() == o.0.len() * o.0[0].len() {
+            first_where_all_flash = Some(i + 1)
+        }
+    }
+    println!("first where all flash: {:?}", first_where_all_flash);
 }
