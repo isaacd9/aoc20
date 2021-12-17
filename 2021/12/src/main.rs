@@ -34,11 +34,10 @@ struct Edge {
     dest: Cave,
 }
 
-fn find_paths(edges: &[Edge]) -> Vec<Vec<Cave>> {
+fn find_paths_one(edges: &[Edge]) -> Vec<Vec<Cave>> {
     use Cave::*;
 
     let mut cave_to_edges: HashMap<Cave, HashSet<Edge>> = HashMap::new();
-    let mut visited: HashSet<Cave> = HashSet::new();
 
     for edge in edges {
         let source_cave_edges = cave_to_edges.entry(edge.source.clone()).or_default();
@@ -86,6 +85,64 @@ fn find_paths(edges: &[Edge]) -> Vec<Vec<Cave>> {
     paths
 }
 
+fn find_paths_two(edges: &[Edge]) -> Vec<Vec<Cave>> {
+    use Cave::*;
+
+    let mut cave_to_edges: HashMap<Cave, HashSet<Edge>> = HashMap::new();
+
+    for edge in edges {
+        let source_cave_edges = cave_to_edges.entry(edge.source.clone()).or_default();
+        source_cave_edges.insert(Edge {
+            source: edge.source.clone(),
+            dest: edge.dest.clone(),
+        });
+
+        let dest_cave_edges = cave_to_edges.entry(edge.dest.clone()).or_default();
+        dest_cave_edges.insert(Edge {
+            dest: edge.source.clone(),
+            source: edge.dest.clone(),
+        });
+    }
+
+    let mut q: VecDeque<Vec<Cave>> = VecDeque::from([vec![Cave::Start]]);
+    let mut paths = vec![];
+
+    while !q.is_empty() {
+        let path = q.pop_front().unwrap();
+        let cave = path.last().unwrap();
+
+        if *cave == End {
+            paths.push(path);
+            continue;
+        }
+
+        for edge in cave_to_edges.get(cave).unwrap_or(&HashSet::new()) {
+            let mut new_path = path.clone();
+            new_path.push(edge.dest.clone());
+
+            match edge.dest {
+                Big(_) => q.push_back(new_path),
+                Small(_) => {
+                    let mut cave_counts: HashMap<Cave, u32> = HashMap::new();
+                    for cave in &path {
+                        if let Small(_) = cave {
+                            *cave_counts.entry(cave.clone()).or_insert(0) += 1
+                        }
+                    }
+
+                    if !path.contains(&edge.dest) || *cave_counts.values().max().unwrap() == 1 {
+                        q.push_back(new_path)
+                    }
+                }
+                End => q.push_back(new_path),
+                Start => (),
+            }
+        }
+    }
+
+    paths
+}
+
 fn main() {
     let stdin = io::stdin();
     let lines = stdin.lock().lines().map(|line| line.unwrap());
@@ -105,6 +162,11 @@ fn main() {
         .collect();
 
     //println!("{:?}", edges);
-    let p = find_paths(&edges);
+    // Part one
+    let p = find_paths_one(&edges);
+    println!("{:?}", p.len());
+
+    // Part two
+    let p = find_paths_two(&edges);
     println!("{:?}", p.len());
 }
