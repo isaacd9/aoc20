@@ -38,7 +38,7 @@ impl Fold {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum Dot {
     On,
     Off,
@@ -62,11 +62,19 @@ impl Board {}
 impl fmt::Display for Board {
     // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut y = 0;
         for line in &self.0 {
-            for dot in line {
-                write!(f, "{}", dot)?;
+            if y < 50 {
+                let mut x = 0;
+                for dot in line {
+                    if x < 100 {
+                        write!(f, "{}", dot)?;
+                    }
+                    x += 1;
+                }
+                write!(f, "\n")?;
+                y += 1;
             }
-            write!(f, "\n")?;
         }
         Ok(())
     }
@@ -147,15 +155,30 @@ fn main() {
     for dot in &dots {
         original_board.plot(dot)
     }
-    println!("{}", original_board);
+    //println!("{}", original_board);
 
     let mut first_fold_board: Board = Board(vec![vec![Dot::Off; 2000]; 2000]);
     let folded = fold(&dots, &folds[0]);
     for dot in folded {
         first_fold_board.plot(&dot)
     }
-    println!("{}", first_fold_board);
+    //println!("{}", first_fold_board);
 
     // Part 1
     println!("{}", first_fold_board.visible());
+
+    // Part 2
+    let mut board: Board = Board(vec![vec![Dot::Off; 2000]; 2000]);
+    let mut folded = dots.clone();
+
+    for f in folds {
+        let mut new_board: Board = Board(vec![vec![Dot::Off; 2000]; 2000]);
+        folded = fold(&folded, &f);
+        for dot in &folded {
+            new_board.plot(dot)
+        }
+        board = new_board
+    }
+
+    println!("{}", board);
 }
