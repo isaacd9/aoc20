@@ -64,10 +64,10 @@ impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut y = 0;
         for line in &self.0 {
-            if y < 50 {
+            if y < 10 {
                 let mut x = 0;
                 for dot in line {
-                    if x < 100 {
+                    if x < 50 {
                         write!(f, "{}", dot)?;
                     }
                     x += 1;
