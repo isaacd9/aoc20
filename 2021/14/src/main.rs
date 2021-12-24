@@ -25,7 +25,6 @@ impl Rule {
 
 fn apply(template: String, rules: &[Rule]) -> String {
     let mut chrs: LinkedList<char> = template.chars().collect();
-
     let mut cursor = chrs.cursor_front_mut();
     while cursor.current().is_some() && cursor.peek_next().is_some() {
         let cur = *cursor.current().unwrap();
@@ -46,7 +45,11 @@ fn apply(template: String, rules: &[Rule]) -> String {
     chrs.iter().collect()
 }
 
-fn count_elements(template: String) -> HashMap<char, u32> {
+fn apply_part_two(m: HashMap<String, u32>, rules: &[Rule]) -> HashMap<String, u32> {
+    m
+}
+
+fn count_elements(template: &String) -> HashMap<char, u32> {
     let chs = template.chars();
     let mut m: HashMap<char, u32> = HashMap::new();
     for ch in chs {
@@ -55,7 +58,7 @@ fn count_elements(template: String) -> HashMap<char, u32> {
     m
 }
 
-fn max_min(template: String) -> (u32, u32) {
+fn max_min(template: &String) -> (u32, u32) {
     let mut min = std::u32::MAX;
     let mut max = 0;
     for v in count_elements(template).values() {
@@ -77,13 +80,21 @@ fn main() {
     let _ = lines.next();
     let rules: Vec<Rule> = lines.map(|line| Rule::parse(line)).collect();
 
-    println!("{:?}", template);
-    println!("{:?}", rules);
+    //println!("{:?}", template);
+    //println!("{:?}", rules);
 
+    // Part 1
     for _ in 0..10 {
         template = apply(template, &rules);
-        println!("{:?}", template.len());
     }
-    let mm = max_min(template);
+    let mm = max_min(&template);
+    println!("{}-{}={:?}", mm.0, mm.1, mm.0 - mm.1);
+
+    // Part 2
+    for i in 11..=40 {
+        println!("step {}", i);
+        template = apply(template, &rules);
+    }
+    let mm = max_min(&template);
     println!("{}-{}={:?}", mm.0, mm.1, mm.0 - mm.1);
 }
