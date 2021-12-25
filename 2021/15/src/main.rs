@@ -76,17 +76,38 @@ impl Cave {
         }
 
         for line in &distances {
-            println!("{:?}", line);
+            //println!("{:?}", line);
         }
         let mut cur = (self.0.len() - 1, self.0[0].len() - 1);
         let mut st = vec![];
         while cur != (0, 0) {
-            println!("moving to {:?} ({})", cur, self.0[cur.0][cur.1]);
+            //println!("moving to {:?} ({})", cur, self.0[cur.0][cur.1]);
             st.push(cur);
             cur = parents[cur.0][cur.1].unwrap();
         }
         st.reverse();
         st
+    }
+
+    fn tile(&self, n: usize) -> Cave {
+        let mut cave: Vec<Vec<u32>> = vec![vec![0; self.0[0].len() * n]; self.0.len() * n];
+        for row_tile in 0..n {
+            for col_tile in 0..n {
+                let row_offset = row_tile * self.0.len();
+                let col_offset = col_tile * self.0[0].len();
+                let multipler = u32::max(row_tile as u32, col_tile as u32);
+                for (row, row_v) in self.0.iter().enumerate() {
+                    for (col, col_v) in row_v.iter().enumerate() {
+                        let mut new_v = *col_v + multipler;
+                        if new_v > 9 {
+                            new_v = (*col_v + multipler) % 10 + 1;
+                        }
+                        cave[row_offset + row][col_offset + col] = new_v;
+                    }
+                }
+            }
+        }
+        Cave(cave)
     }
 }
 
@@ -104,5 +125,9 @@ fn main() {
     for p in path {
         sum += cave.0[p.0][p.1];
     }
-    println!("{:?}", sum);
+    //println!("{:?}", sum);
+
+    // Part 2
+    let new_cave = cave.tile(5);
+    println!("{}", new_cave);
 }
