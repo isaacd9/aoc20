@@ -95,12 +95,14 @@ impl Cave {
             for col_tile in 0..n {
                 let row_offset = row_tile * self.0.len();
                 let col_offset = col_tile * self.0[0].len();
-                let multipler = u32::max(row_tile as u32, col_tile as u32);
+                //let adder = u32::max(row_tile as u32, col_tile as u32);
+                let adder = (row_tile + col_tile) as u32;
+
                 for (row, row_v) in self.0.iter().enumerate() {
                     for (col, col_v) in row_v.iter().enumerate() {
-                        let mut new_v = *col_v + multipler;
+                        let mut new_v = *col_v + adder;
                         if new_v > 9 {
-                            new_v = (*col_v + multipler) % 10 + 1;
+                            new_v = (*col_v + adder) % 10 + 1;
                         }
                         cave[row_offset + row][col_offset + col] = new_v;
                     }
@@ -125,9 +127,14 @@ fn main() {
     for p in path {
         sum += cave.0[p.0][p.1];
     }
-    //println!("{:?}", sum);
+    println!("{:?}", sum);
 
     // Part 2
     let new_cave = cave.tile(5);
-    println!("{}", new_cave);
+    let path_part_two = new_cave.find_lowest_risk_path();
+    let mut two_sum = 0;
+    for p in path_part_two {
+        two_sum += new_cave.0[p.0][p.1];
+    }
+    println!("{}", two_sum);
 }
