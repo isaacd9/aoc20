@@ -1,4 +1,5 @@
 use std::{
+    collections::{BinaryHeap, HashSet, VecDeque},
     fmt::Display,
     io::{self, BufRead, Read},
 };
@@ -31,6 +32,62 @@ impl Cave {
             .collect();
         Cave(v)
     }
+
+    pub(crate) fn find_lowest_risk_path(&self) -> Vec<(usize, usize)> {
+        let mut distances: Vec<Vec<u32>> = vec![vec![u32::MAX; self.0[0].len()]; self.0.len()];
+        let mut parents: Vec<Vec<Option<(usize, usize)>>> =
+            vec![vec![None; self.0[0].len()]; self.0.len()];
+        distances[0][0] = self.0[0][0];
+
+        let mut q: BinaryHeap<(i32, (usize, usize))> =
+            std::collections::BinaryHeap::from([(-(distances[0][0] as i32), (0, 0))]);
+        let mut visited = HashSet::new();
+        while !q.is_empty() {
+            let cur = q.pop().unwrap().1;
+            if visited.contains(&cur) {
+                continue;
+            }
+
+            let cur_dist = distances[cur.0][cur.1];
+
+            for adj in [(1, 0), (-1, 0), (0, 1), (0, -1)] {
+                let n = (
+                    (cur.0 as i32 + adj.0) as usize,
+                    (cur.1 as i32 + adj.1) as usize,
+                );
+
+                let neighbor = distances.get(n.0).and_then(|row| row.get(n.1));
+                match neighbor {
+                    Some(v) => {
+                        let weight = self.0[n.0][n.1];
+                        let neighbor_dist = cur_dist + weight;
+                        if neighbor_dist < *v {
+                            distances[n.0][n.1] = neighbor_dist;
+                            parents[n.0][n.1] = Some(cur);
+                        }
+
+                        q.push((-(neighbor_dist as i32), n));
+                    }
+                    None => continue,
+                }
+            }
+
+            visited.insert(cur);
+        }
+
+        for line in &distances {
+            println!("{:?}", line);
+        }
+        let mut cur = (self.0.len() - 1, self.0[0].len() - 1);
+        let mut st = vec![];
+        while cur != (0, 0) {
+            println!("moving to {:?} ({})", cur, self.0[cur.0][cur.1]);
+            st.push(cur);
+            cur = parents[cur.0][cur.1].unwrap();
+        }
+        st.reverse();
+        st
+    }
 }
 
 fn main() {
@@ -40,5 +97,12 @@ fn main() {
     stdin.lock().read_to_string(&mut st).unwrap();
 
     let cave = Cave::parse(&st);
-    println!("{}", cave);
+    let path = cave.find_lowest_risk_path();
+
+    // Part 1
+    let mut sum = 0;
+    for p in path {
+        sum += cave.0[p.0][p.1];
+    }
+    println!("{:?}", sum);
 }
