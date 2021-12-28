@@ -1,4 +1,7 @@
-use std::io::{self, Read};
+use std::{
+    fs::OpenOptions,
+    io::{self, Read},
+};
 
 #[derive(Debug)]
 enum LengthTypeID {
@@ -23,7 +26,6 @@ fn parse(st: &String) -> Result<Vec<u8>, std::num::ParseIntError> {
     for _ in 0..(st_cloned.len() % 4) {
         st_cloned.push('0');
     }
-    println!("cloned {}", st_cloned);
     (0..st_cloned.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&st_cloned[i..i + 2], 16))
@@ -35,18 +37,29 @@ fn parse_to_st(st: &String) -> Result<String, std::num::ParseIntError> {
     for _ in 0..(st_cloned.len() % 4) {
         st_cloned.push('0');
     }
-    println!("cloned {}", st_cloned);
     let st: Vec<String> = (0..st_cloned.len())
         .map(|i| u8::from_str_radix(&st_cloned[i..i + 1], 16).unwrap())
         .map(|i| format!("{:04b}", i))
         .collect();
 
-    println!("lis: {:?}", st);
+    //println!("lis: {:?}", st);
     let joined = st.join("");
     Ok(joined)
 }
 
 impl Packet {
+    fn version_sum(&self) -> u32 {
+        use PacketType::*;
+        let mut version_sum: u32 = self.Version as u32;
+
+        version_sum += match &self.PacketType {
+            Literal(_) => 0,
+            Operator(_, subpackets) => subpackets.iter().map(|p| p.version_sum()).sum(),
+        };
+
+        version_sum
+    }
+
     fn parse_as_literal(bits: &str) -> (PacketType, usize) {
         let mut more = true;
         let mut val: u64 = 0;
@@ -156,10 +169,15 @@ mod tests {
     fn simple_example() {
         use super::*;
 
-        for st in ["8A004A801A8002F478"] {
+        for st in [
+            "8A004A801A8002F478",
+            "620080001611562C8802118E34",
+            "C0015000016115A2E0802F182340",
+            "A0016C880162017C3686B18A3D4780",
+        ] {
             let bin = parse_to_st(&st.to_string()).unwrap();
             let p = Packet::parse(bin.as_str());
-            println!("{:?}", p);
+            println!("{:?}", p.0.version_sum());
         }
     }
 }
@@ -171,6 +189,7 @@ fn main() {
     stdin.lock().read_to_string(&mut st).unwrap();
 
     println!("{:?}", st);
-    //println!("{:x?}", parse(&st).unwrap());
-    println!("{:?}", parse_to_st(&st).unwrap());
+    let bin = parse_to_st(&st.to_string()).unwrap();
+    let p = Packet::parse(bin.as_str());
+    println!("{:?}", p.0.version_sum());
 }
