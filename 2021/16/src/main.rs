@@ -28,23 +28,12 @@ enum PacketType {
 
 #[derive(Debug)]
 struct Packet {
-    Version: u8,
-    PacketType: PacketType,
+    version: u8,
+    packet_type: PacketType,
 }
 
-fn parse(st: &String) -> Result<Vec<u8>, std::num::ParseIntError> {
-    let mut st_cloned = st.clone().trim().to_string();
-    for _ in 0..(st_cloned.len() % 4) {
-        st_cloned.push('0');
-    }
-    (0..st_cloned.len())
-        .step_by(2)
-        .map(|i| u8::from_str_radix(&st_cloned[i..i + 2], 16))
-        .collect()
-}
-
-fn parse_to_st(st: &String) -> Result<String, std::num::ParseIntError> {
-    let mut st_cloned = st.clone().trim().to_string();
+fn parse_to_st(st: &str) -> Result<String, std::num::ParseIntError> {
+    let mut st_cloned = st.trim().to_string();
     for _ in 0..(st_cloned.len() % 4) {
         st_cloned.push('0');
     }
@@ -61,9 +50,9 @@ fn parse_to_st(st: &String) -> Result<String, std::num::ParseIntError> {
 impl Packet {
     fn version_sum(&self) -> u32 {
         use PacketType::*;
-        let mut version_sum: u32 = self.Version as u32;
+        let mut version_sum: u32 = self.version as u32;
 
-        version_sum += match &self.PacketType {
+        version_sum += match &self.packet_type {
             Literal(_) => 0,
             Operator(_, _, subpackets) => subpackets.iter().map(|p| p.version_sum()).sum(),
         };
@@ -75,7 +64,7 @@ impl Packet {
         use crate::Operator::*;
         use PacketType::*;
 
-        match &self.PacketType {
+        match &self.packet_type {
             Literal(n) => *n,
             Operator(op, _, subpackets) => match op {
                 Sum => subpackets.iter().map(|p| p.value()).sum(),
@@ -159,7 +148,7 @@ impl Packet {
             }
             Subpackets(num) => {
                 let mut v = vec![];
-                for i in 0..num {
+                for _ in 0..num {
                     let (parsed, consumed) = Self::parse(&bits[parsed_len..]);
                     parsed_len += consumed;
                     v.push(parsed);
@@ -184,14 +173,14 @@ impl Packet {
 
     pub fn parse(bits: &str) -> (Self, usize) {
         let version = u8::from_str_radix(&bits[0..3], 2).unwrap();
-        let (type_id, parsed_len) = match u8::from_str_radix(&bits[3..6], 2).unwrap() {
+        let (packet_type, parsed_len) = match u8::from_str_radix(&bits[3..6], 2).unwrap() {
             4 => Self::parse_as_literal(&bits[6..]),
             n => Self::parse_as_operator(n, &bits[6..]),
         };
         (
             Packet {
-                Version: version,
-                PacketType: type_id,
+                version,
+                packet_type,
             },
             parsed_len + 6,
         )
@@ -219,7 +208,7 @@ mod tests {
         use super::*;
 
         for st in ["38006F45291200"] {
-            let bin = parse_to_st(&st.to_string()).unwrap();
+            let bin = parse_to_st(st).unwrap();
             println!("bin: {}", bin);
         }
     }
@@ -234,7 +223,7 @@ mod tests {
             "C0015000016115A2E0802F182340",
             "A0016C880162017C3686B18A3D4780",
         ] {
-            let bin = parse_to_st(&st.to_string()).unwrap();
+            let bin = parse_to_st(st).unwrap();
             let p = Packet::parse(bin.as_str());
             println!("{:?}", p.0.version_sum());
         }
@@ -254,7 +243,7 @@ mod tests {
             "9C005AC2F8F0",
             "9C0141080250320F1802104A08",
         ] {
-            let bin = parse_to_st(&st.to_string()).unwrap();
+            let bin = parse_to_st(st).unwrap();
             let p = Packet::parse(bin.as_str());
             println!("{:?}", p.0.value());
         }
