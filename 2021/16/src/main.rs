@@ -10,9 +10,20 @@ enum LengthTypeID {
 }
 
 #[derive(Debug)]
+enum Operator {
+    Sum,
+    Product,
+    Minimum,
+    Maximum,
+    GreaterThan,
+    LessThan,
+    Equal,
+}
+
+#[derive(Debug)]
 enum PacketType {
     Literal(u64),
-    Operator(LengthTypeID, Vec<Packet>),
+    Operator(Operator, LengthTypeID, Vec<Packet>),
 }
 
 #[derive(Debug)]
@@ -54,10 +65,46 @@ impl Packet {
 
         version_sum += match &self.PacketType {
             Literal(_) => 0,
-            Operator(_, subpackets) => subpackets.iter().map(|p| p.version_sum()).sum(),
+            Operator(_, _, subpackets) => subpackets.iter().map(|p| p.version_sum()).sum(),
         };
 
         version_sum
+    }
+
+    fn value(&self) -> u64 {
+        use crate::Operator::*;
+        use PacketType::*;
+
+        match &self.PacketType {
+            Literal(n) => *n,
+            Operator(op, _, subpackets) => match op {
+                Sum => subpackets.iter().map(|p| p.value()).sum(),
+                Product => subpackets.iter().map(|p| p.value()).product(),
+                Minimum => subpackets.iter().map(|p| p.value()).min().unwrap(),
+                Maximum => subpackets.iter().map(|p| p.value()).max().unwrap(),
+                GreaterThan => {
+                    if subpackets[0].value() > subpackets[1].value() {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                LessThan => {
+                    if subpackets[0].value() < subpackets[1].value() {
+                        1
+                    } else {
+                        0
+                    }
+                }
+                Equal => {
+                    if subpackets[0].value() == subpackets[1].value() {
+                        1
+                    } else {
+                        0
+                    }
+                }
+            },
+        }
     }
 
     fn parse_as_literal(bits: &str) -> (PacketType, usize) {
@@ -81,8 +128,9 @@ impl Packet {
         (PacketType::Literal(val), offset)
     }
 
-    fn parse_as_operator(bits: &str) -> (PacketType, usize) {
+    fn parse_as_operator(n: u8, bits: &str) -> (PacketType, usize) {
         use LengthTypeID::*;
+        use Operator::*;
 
         let mut parsed_len = 0;
 
@@ -120,14 +168,25 @@ impl Packet {
             }
         };
 
-        (PacketType::Operator(length_type, packets), parsed_len)
+        let o = match n {
+            0 => PacketType::Operator(Sum, length_type, packets),
+            1 => PacketType::Operator(Product, length_type, packets),
+            2 => PacketType::Operator(Minimum, length_type, packets),
+            3 => PacketType::Operator(Maximum, length_type, packets),
+            5 => PacketType::Operator(GreaterThan, length_type, packets),
+            6 => PacketType::Operator(LessThan, length_type, packets),
+            7 => PacketType::Operator(Equal, length_type, packets),
+            _ => panic!("impossible packet type {}", n),
+        };
+
+        (o, parsed_len)
     }
 
     pub fn parse(bits: &str) -> (Self, usize) {
         let version = u8::from_str_radix(&bits[0..3], 2).unwrap();
         let (type_id, parsed_len) = match u8::from_str_radix(&bits[3..6], 2).unwrap() {
             4 => Self::parse_as_literal(&bits[6..]),
-            _ => Self::parse_as_operator(&bits[6..]),
+            n => Self::parse_as_operator(n, &bits[6..]),
         };
         (
             Packet {
@@ -166,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn simple_example() {
+    fn simple_example_version_sum() {
         use super::*;
 
         for st in [
@@ -180,6 +239,26 @@ mod tests {
             println!("{:?}", p.0.version_sum());
         }
     }
+
+    #[test]
+    fn simple_example_value() {
+        use super::*;
+
+        for st in [
+            "C200B40A82",
+            "04005AC33890",
+            "880086C3E88112",
+            "CE00C43D881120",
+            "D8005AC2A8F0",
+            "F600BC2D8F",
+            "9C005AC2F8F0",
+            "9C0141080250320F1802104A08",
+        ] {
+            let bin = parse_to_st(&st.to_string()).unwrap();
+            let p = Packet::parse(bin.as_str());
+            println!("{:?}", p.0.value());
+        }
+    }
 }
 
 fn main() {
@@ -188,8 +267,11 @@ fn main() {
     let mut st = String::new();
     stdin.lock().read_to_string(&mut st).unwrap();
 
-    println!("{:?}", st);
+    // Part 1
+    //println!("{:?}", st);
     let bin = parse_to_st(&st.to_string()).unwrap();
     let p = Packet::parse(bin.as_str());
     println!("{:?}", p.0.version_sum());
+    // Part 2
+    println!("{:?}", p.0.value());
 }
