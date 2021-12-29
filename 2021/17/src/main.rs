@@ -41,23 +41,24 @@ fn main() {
     let ta = TargetArea::parse(&st.as_str()).unwrap();
     println!("{:?}", ta);
 
-    /*
     // Part 1
+    let mut velocities: HashSet<(i32, i32)> = HashSet::new();
+
     let mut outer_max_y = i32::MIN;
     let mut outer_max_v = None;
 
-    for velocity_x in 7..8 {
-        for velocity_y in 8..9 {
-            println!("initial {:?}", (velocity_x, velocity_y));
+    for velocity_x in -1000..1000 {
+        for velocity_y in -1000..1000 {
+            //println!("initial {:?}", (velocity_x, velocity_y));
 
             let mut max_y = i32::MIN;
             let mut max_v = None;
 
             let mut position = (0, 0);
             let mut velocity = (velocity_x, velocity_y);
-            for step in 0..100 {
+            for step in 0..1000 {
                 position = (position.0 + velocity.0, position.1 + velocity.1);
-                println!("{:?}", position);
+                //println!("{:?}", position);
 
                 if position.1 > max_y {
                     max_y = position.1;
@@ -65,23 +66,27 @@ fn main() {
                 }
 
                 if ta.contains(position) {
+                    /*
                     println!(
                         "({}, {}) contains ({}, {}) on step {}",
                         velocity_x, velocity_y, position.0, position.1, step
                     );
+                    */
                     if max_y >= outer_max_y {
                         println!("updating max to {}", max_y);
                         outer_max_y = max_y;
                         outer_max_v = max_v;
                     }
+
+                    velocities.insert((velocity_x, velocity_y));
                     break;
                 }
 
                 if velocity.0 > 0 {
                     velocity.0 -= 1;
-                } else if velocity.1 < 0 {
+                } else if velocity.0 < 0 {
                     velocity.0 += 1;
-                }
+                };
 
                 velocity.1 -= 1;
             }
@@ -89,8 +94,8 @@ fn main() {
     }
 
     println!("{} {:?}", outer_max_y, outer_max_v);
-    */
 
+    /*
     // Part 2
     let mut velocities: HashSet<(i32, i32)> = HashSet::new();
     for velocity_x in -100..100 {
@@ -123,6 +128,7 @@ fn main() {
         }
     }
     println!("{}", velocities.len());
+    */
 
     let expected = vec![
         (23, -10),
@@ -241,7 +247,9 @@ fn main() {
 
     for e in expected {
         if !velocities.contains(&e) {
-            //println!("missing {:?}", e)
+            println!("missing {:?}", e);
         }
+        //velocities.remove(&e);
     }
+    println!("{:?}", velocities.len());
 }
