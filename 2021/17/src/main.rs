@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::hash::Hash;
 use std::result::Result::Err;
@@ -82,10 +83,10 @@ fn main() {
                     break;
                 }
 
-                if velocity.0 > 0 {
-                    velocity.0 -= 1;
-                } else if velocity.0 < 0 {
-                    velocity.0 += 1;
+                velocity.0 += match velocity.0.cmp(&0) {
+                    Ordering::Greater => -1,
+                    Ordering::Less => 1,
+                    Ordering::Equal => 0,
                 };
 
                 velocity.1 -= 1;
