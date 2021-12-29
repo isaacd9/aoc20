@@ -37,18 +37,19 @@ fn main() {
     stdin.lock().read_to_string(&mut st).unwrap();
 
     let ta = TargetArea::parse(&st.as_str()).unwrap();
+    println!("{:?}", ta);
 
     let mut outer_max_y = i32::MIN;
     let mut outer_max_v = None;
 
-    for velocity_x in -200..200 {
-        for velocity_y in -200..200 {
+    for velocity_x in -300..300 {
+        for velocity_y in -300..300 {
             let mut max_y = i32::MIN;
             let mut max_v = None;
 
             let mut position = (0, 0);
             let mut velocity = (velocity_x, velocity_y);
-            for step in 0..100 {
+            for step in 0..10000 {
                 position = (position.0 + velocity.0, position.1 + velocity.1);
 
                 if position.1 > max_y {
@@ -57,12 +58,11 @@ fn main() {
                 }
 
                 if ta.contains(position) {
-                    println!(
-                        "({}, {}) contains ({}, {}) on step {}",
-                        velocity_x, velocity_y, position.0, position.1, step
-                    );
-
-                    if max_y > outer_max_y {
+                    if max_y >= outer_max_y {
+                        println!(
+                            "({}, {}) contains ({}, {}) on step {}. updating max to {}",
+                            velocity_x, velocity_y, position.0, position.1, step, max_y
+                        );
                         outer_max_y = max_y;
                         outer_max_v = max_v;
                     }
