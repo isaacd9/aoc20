@@ -24,12 +24,41 @@ fn op_play(st: &str) -> RockPaperScissors {
     }
 }
 
-fn you_play(st: &str) -> RockPaperScissors {
+fn you_play_1(st: &str) -> RockPaperScissors {
     match st {
         "X" => RockPaperScissors::Rock,
         "Y" => RockPaperScissors::Paper,
         "Z" => RockPaperScissors::Scissors,
         _ => panic!("unknown!"),
+    }
+}
+
+fn you_play_2(st: &str, op_play: &RockPaperScissors) -> RockPaperScissors {
+    use Outcome::*;
+    use RockPaperScissors::*;
+
+    let outcome = match st {
+        "X" => Loss,
+        "Y" => Draw,
+        "Z" => Win,
+        _ => panic!("unknown outcome"),
+    };
+
+    match (outcome, op_play) {
+        // Rock
+        (Loss, Rock) => Scissors,
+        (Draw, Rock) => Rock,
+        (Win, Rock) => Paper,
+
+        // Paper
+        (Loss, Paper) => Rock,
+        (Draw, Paper) => Paper,
+        (Win, Paper) => Scissors,
+
+        // Scissors
+        (Loss, Scissors) => Paper,
+        (Draw, Scissors) => Scissors,
+        (Win, Scissors) => Rock,
     }
 }
 
@@ -42,10 +71,12 @@ fn outcome(you_p: &RockPaperScissors, op_p: &RockPaperScissors) -> Outcome {
         (Rock, Rock) => Draw,
         (Rock, Paper) => Loss,
         (Rock, Scissors) => Win,
+
         // Paper
         (Paper, Rock) => Win,
         (Paper, Paper) => Draw,
         (Paper, Scissors) => Loss,
+
         // Scissors
         (Scissors, Rock) => Loss,
         (Scissors, Paper) => Win,
@@ -64,7 +95,7 @@ fn main() {
             let you = sp.next().unwrap();
 
             let op_p = op_play(opponent);
-            let you_p = you_play(you);
+            let you_p = you_play_2(you, &op_p);
 
             let outcome_score = outcome(&you_p, &op_p) as i32;
             let shape_score = match you_p {
