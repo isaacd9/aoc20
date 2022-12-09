@@ -1,13 +1,10 @@
-use std::{
-    collections::btree_map::Iter,
-    io::{self, BufRead},
-};
+use std::io::{self, BufRead};
 
 #[derive(Debug)]
 struct Range(u32, u32);
 
 impl Range {
-    fn parse(st: &String) -> Result<Range, Box<dyn std::error::Error>> {
+    fn parse(st: &str) -> Result<Range, Box<dyn std::error::Error>> {
         let mut sp = st.split('-');
         Ok(Range(
             sp.next().ok_or("no low")?.parse()?,
@@ -24,16 +21,20 @@ impl Range {
 struct RangePair(Range, Range);
 
 impl RangePair {
-    fn parse(st: &String) -> Result<RangePair, Box<dyn std::error::Error>> {
+    fn parse(st: &str) -> Result<RangePair, Box<dyn std::error::Error>> {
         let mut sp = st.split(',');
         Ok(RangePair(
-            Range::parse(&sp.next().ok_or("no low")?.to_string())?,
-            Range::parse(&sp.next().ok_or("no hi")?.to_string())?,
+            Range::parse(sp.next().ok_or("no low")?)?,
+            Range::parse(sp.next().ok_or("no hi")?)?,
         ))
     }
 
     fn fully_contained(&self) -> bool {
         self.0.contains(&self.1) || self.1.contains(&self.0)
+    }
+
+    fn any_overlap(&self) -> bool {
+        (self.0 .0 <= self.1 .1) && (self.0 .1 >= self.1 .0)
     }
 }
 
@@ -47,7 +48,10 @@ fn main() {
         .collect();
 
     let contains: Vec<bool> = lines.iter().map(|rp| rp.fully_contained()).collect();
+    let n_contains: u32 = contains.iter().map(|f| u32::from(*f)).sum();
+    println!("{:?}", n_contains);
 
-    let n: u32 = contains.iter().map(|f| if *f { 1 } else { 0 }).sum();
-    println!("{:?}", n);
+    let overlaps: Vec<bool> = lines.iter().map(|rp| rp.any_overlap()).collect();
+    let n_overlaps: u32 = overlaps.iter().map(|f| u32::from(*f)).sum();
+    println!("{:?}", n_overlaps);
 }
